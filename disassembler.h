@@ -6,6 +6,7 @@
 # include <sys/mman.h>
 # include <elf.h>
 # include <string.h>
+# include <stdlib.h>
 
 typedef struct	s_rex_prefix {
 	char		*byte;
@@ -31,11 +32,14 @@ typedef struct	s_sib {
 
 typedef struct	s_instruction {
 	char		*instruction;
-	t_rex_prefix	*prefix;
+	char		grp_prefix[4];
+	t_rex_prefix	*rex_prefix;
 	t_mod_rm	*ModRM;
 	t_sib		*SIB;
 	char		resize;
-	char		opcode;
+	int			opcode;
+	int			displacement;
+	int			immediate;
 	void		*next;
 	void		*previous;
 	size_t		inst_size;

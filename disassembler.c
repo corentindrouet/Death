@@ -1,7 +1,21 @@
 #include "disassembler.h"
 
+int				verif_prefix_values(char byte) {
+	static char	grp_prefix_values[14] = {0xf0, 0xf2, 0xf3, 0x2e, 0x36, 0x3e, 0x26, 0x64, 0x65, 0x2e, 0x3e, 0x66, 0x67, 0x00};
+	int			i;
+
+	i = 0;
+	while (grp_prefix_values[i] != 0x00) {
+		if (grp_prefix_values[i] == byte)
+			return (1);
+		i++;
+	}
+	return (0);
+}
+
 t_instruction	*create_instruction(void *mem) {
 	t_instruction	*new_instruction;
+	int				grp_prefix_index;
 
 	new_instruction = malloc(sizeof(t_instruction));
 	if (!new_instruction)
@@ -10,25 +24,51 @@ t_instruction	*create_instruction(void *mem) {
 	new_instruction->previous = NULL;
 	new_instruction->instruction = mem;
 	new_instruction->resize = 0;
-	if (*(char*)mem == 0x66) {
-		new_instruction->resize = 0x66;
+	grp_prefix_index = 0;
+	while (grp_prefix_index < 4 && verif_prefix_values(*(char*)mem)) {
+		new_instruction->grp_prefix[grp_prefix_index] = *(char*)mem;
 		mem++;
+		grp_prefix_index++;
 	}
-	new_instruction->prefix = NULL;
-	if (*(char*)mem & 0x01000000) {
-		new_instruction->prefix = malloc(sizeof(t_rex_prefix));
-		if (!new_instruction->prefix) {
+	new_instruction->rex_prefix = NULL;
+	if ((*(char*)mem >> 4) & 0x4) {
+		new_instruction->rex_prefix = malloc(sizeof(t_rex_prefix));
+		if (!new_instruction->rex_prefix) {
 			free(new_instruction);
 			return (NULL);
 		}
-		new_instruction->prefix->byte = mem;
-		new_instruction->prefix->is_64 = mem & 0x00001000;
-		new_instruction->prefix->sib_extension = mem & 0x00000100;
-		new_instruction->prefix->reg_extension = mem & 0x00000010;
-		new_instruction->prefix->dest_reg_extension = mem & 0x00000001;
+		new_instruction->rex_prefix->byte = mem;
+		new_instruction->rex_prefix->is_64 = *(char*)mem & 0x8;
+		new_instruction->rex_prefix->sib_extension = *(char*)mem & 0x4;
+		new_instruction->rex_prefix->reg_extension = *(char*)mem & 0x2;
+		new_instruction->rex_prefix->dest_reg_extension = *(char*)mem & 0x1;
 		mem++;
 	}
-	if (*(char*)mem &)
+	new_instruction->opcode = (*(char*)mem == 0x0f)? *(short*)mem : *(char*)mem;
+	mem += (*(char*)mem == 0x0f)? 2 : 1;
+	new_instruction->ModRM = malloc(sizeof(t_mod_rm));
+	if (!new_instruction->ModRM) {
+		free(new_instruction->rex_prefix);
+		free(new_instruction);
+		return (NULL);
+	}
+	new_instruction->ModRM->byte = (char*)mem;
+	new_instruction->ModRM->direct = (*(char*)mem & 0xc0) >> 6;
+	new_instruction->ModRM->reg = (*(char*)mem & 0x38) >> 3;
+	new_instruction->ModRM->rm = (*(char*)mem & 0x7);
+
+	new_instruction->SIB = malloc(sizeof(t_sib));
+	if (!new_instruction->SIB) {
+		free(new_instruction->ModRM);
+		free(new_instruction->rex_prefix);
+		free(new_instruction);
+		return (NULL);
+	}
+	new_instruction->SIB->byte = (char*)mem;
+	new_instruction->SIB->scale = (*(char*)mem & 0xc0) >> 6;
+	new_instruction->SIB->index = (*(char*)mem & 0x38) >> 3;
+	new_instruction->SIB->base = (*(char*)mem & 0x7);
+	return (new_instruction);
 }
 
 size_t	file_size(int fd)
@@ -66,9 +106,9 @@ size_t	find_text_section(void *file_mem, void **text_start) {
 	return (-1);
 }
 
-void	disas_text_section(void *text, size_t size) {
+/*void	disas_text_section(void *text, size_t size) {
 	
-}
+}*/
 
 int 	main(int argc, char **argv) {
 	int		fd;
