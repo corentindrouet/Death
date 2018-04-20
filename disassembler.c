@@ -75,9 +75,9 @@ t_instruction	*create_instruction(void *mem) {
 		}
 		new_instruction->inst_size++;
 		new_instruction->rex_prefix->byte = mem;
-		new_instruction->rex_prefix->is_64 = *(unsigned char*)mem & 0x8;
-		new_instruction->rex_prefix->sib_extension = *(unsigned char*)mem & 0x4;
-		new_instruction->rex_prefix->reg_extension = *(unsigned char*)mem & 0x2;
+		new_instruction->rex_prefix->is_64 = (*(unsigned char*)mem & 0x8) >> 3;
+		new_instruction->rex_prefix->reg_extension = (*(unsigned char*)mem & 0x4) >> 2;
+		new_instruction->rex_prefix->sib_extension = (*(unsigned char*)mem & 0x2) >> 1;
 		new_instruction->rex_prefix->dest_reg_extension = *(unsigned char*)mem & 0x1;
 		mem++;
 	}
@@ -157,13 +157,13 @@ t_instruction	*create_instruction(void *mem) {
 	return (new_instruction);
 }
 
-void	delete_instruction(t_instruction **insts) {
-	if (!*insts)
+void	delete_instruction(t_instruction *insts) {
+	if (!insts)
 		return ;
-	free((*insts)->rex_prefix);
-	free((*insts)->ModRM);
-	free((*insts)->SIB);
-	free(*insts);
+	free(insts->rex_prefix);
+	free(insts->ModRM);
+	free(insts->SIB);
+	free(insts);
 }
 
 size_t	file_size(int fd) {
@@ -202,6 +202,10 @@ size_t	find_text_section(void *file_mem, void **text_start) {
 
 void	print_instruction(t_instruction *insts) {
 	int	i;
+	char	registers_table[16][5] = {
+		"RAX", "RCX", "RDX", "RBX", "RSP", "RBP", "RSI", "RDI",
+		"R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15",
+	};
 
 	printf("Grp prefix: %d\n", insts->nb_grp_prefix);
 	for (i = 0; i < insts->nb_grp_prefix; i++)
@@ -222,16 +226,16 @@ void	print_instruction(t_instruction *insts) {
 		printf("Mod R/M:\n");
 		printf("  Byte: %#hhx\n", *(insts->ModRM->byte));
 		printf("  Direct: %#hhx\n", insts->ModRM->direct);
-		printf("  Reg: %#hhx\n", insts->ModRM->reg);
-		printf("  R/M: %#hhx\n", insts->ModRM->rm);
+		printf("  Reg: %#hhx %s\n", insts->ModRM->reg, registers_table[(insts->rex_prefix->reg_extension * 8) + insts->ModRM->reg]);
+		printf("  R/M: %#hhx %s\n", insts->ModRM->rm, registers_table[(insts->rex_prefix->dest_reg_extension * 8) + insts->ModRM->rm]);
 	}
 
 	if (insts->SIB) {
 		printf("SIB:\n");
 		printf("  Byte: %#hhx\n", *(insts->SIB->byte));
 		printf("  Scale: %#hhx\n", insts->SIB->scale);
-		printf("  Index: %#hhx\n", insts->SIB->index);
-		printf("  Base: %#hhx\n", insts->SIB->base);
+		printf("  Index: %#hhx %s\n", insts->SIB->index, registers_table[insts->SIB->index]);
+		printf("  Base: %#hhx %s\n", insts->SIB->base, registers_table[insts->SIB->base]);
 	}
 
 	printf("Displacement: %#x\n", insts->displacement);
@@ -242,6 +246,7 @@ void	print_instruction(t_instruction *insts) {
 void	disas_text_section(void *text, size_t size) {
 	t_instruction	*insts_lst;
 	t_instruction	*actual_inst;
+	t_instruction	*tmp;
 	size_t			total_size_treated;
 
 	insts_lst = NULL;
@@ -267,10 +272,13 @@ void	disas_text_section(void *text, size_t size) {
 	while (actual_inst) {
 		print_instruction(actual_inst);
 		printf("\n");
-//		if (actual_inst->previous) {
-//			delete_instruction(&(t_instruction*)(actual_inst->previous));
-//		}
 		actual_inst = actual_inst->next;
+	}
+	actual_inst = insts_lst;
+	while (actual_inst) {
+		tmp = actual_inst->next;
+		delete_instruction(actual_inst);
+		actual_inst = tmp;
 	}
 	return ;
 }
@@ -300,5 +308,7 @@ int 	main(int argc, char **argv) {
 	}
 	text_size = find_text_section(file_mem, &text_start);
 	disas_text_section(text_start, text_size);
+	munmap(file_mem, fd_size);
+	close(fd);
 	return (0);
 }
