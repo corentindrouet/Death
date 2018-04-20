@@ -21,10 +21,13 @@ t_instruction	*create_instruction(void *mem) {
 	if (!new_instruction)
 		return (NULL);
 	new_instruction->inst_size = 0;
+	new_instruction->opcode = 0;
 	new_instruction->next = NULL;
 	new_instruction->previous = NULL;
 	new_instruction->instruction = mem;
 	new_instruction->resize = 0;
+	new_instruction->displacement = 0;
+	new_instruction->immediate = 0;
 	grp_prefix_index = 0;
 
 	/*
@@ -47,11 +50,12 @@ t_instruction	*create_instruction(void *mem) {
 	 * grp4:
 	 * 	0x67 Address size override
 	 */
-	while (grp_prefix_index < 4 && verif_prefix_values(*(char*)mem)) {
-		new_instruction->grp_prefix[grp_prefix_index] = *(char*)mem;
+	while (grp_prefix_index < 4 && verif_prefix_values(*(unsigned char*)mem)) {
+		new_instruction->grp_prefix[grp_prefix_index] = *(unsigned char*)mem;
 		mem++;
 		grp_prefix_index++;
 		new_instruction->inst_size++;
+		new_instruction->nb_grp_prefix++;
 	}
 
 	/*
@@ -61,7 +65,7 @@ t_instruction	*create_instruction(void *mem) {
 	 * +----+-+-+-+-+
 	 */
 	new_instruction->rex_prefix = NULL;
-	if ((*(char*)mem >> 4) & 0x4) {
+	if ((*(unsigned char*)mem >> 4) & 0x4) {
 		new_instruction->rex_prefix = malloc(sizeof(t_rex_prefix));
 		if (!new_instruction->rex_prefix) {
 			free(new_instruction);
@@ -69,19 +73,19 @@ t_instruction	*create_instruction(void *mem) {
 		}
 		new_instruction->inst_size++;
 		new_instruction->rex_prefix->byte = mem;
-		new_instruction->rex_prefix->is_64 = *(char*)mem & 0x8;
-		new_instruction->rex_prefix->sib_extension = *(char*)mem & 0x4;
-		new_instruction->rex_prefix->reg_extension = *(char*)mem & 0x2;
-		new_instruction->rex_prefix->dest_reg_extension = *(char*)mem & 0x1;
+		new_instruction->rex_prefix->is_64 = *(unsigned char*)mem & 0x8;
+		new_instruction->rex_prefix->sib_extension = *(unsigned char*)mem & 0x4;
+		new_instruction->rex_prefix->reg_extension = *(unsigned char*)mem & 0x2;
+		new_instruction->rex_prefix->dest_reg_extension = *(unsigned char*)mem & 0x1;
 		mem++;
 	}
 
 	/*
 	 * Opcode is directly after prefixs, but can be on 1 or 2 bytes, depending of prefix
 	 */
-	new_instruction->opcode = (*(char*)mem == 0x0f)? *(short*)mem : *(char*)mem;
-	new_instruction->inst_size += (*(char*)mem == 0x0f)? 2 : 1;
-	mem += (*(char*)mem == 0x0f)? 2 : 1;
+	new_instruction->opcode = (*(unsigned char*)mem == 0x0f)? *(unsigned short*)mem : *(unsigned char*)mem;
+	new_instruction->inst_size += (*(unsigned char*)mem == 0x0f)? 2 : 1;
+	mem += (*(unsigned char*)mem == 0x0f)? 2 : 1;
 
 	/*
 	 * Now take the ModRM field. It loog like that:
@@ -99,10 +103,11 @@ t_instruction	*create_instruction(void *mem) {
 		return (NULL);
 	}
 	new_instruction->inst_size++;
-	new_instruction->ModRM->byte = (char*)mem;
-	new_instruction->ModRM->direct = (*(char*)mem & 0xc0) >> 6;
-	new_instruction->ModRM->reg = (*(char*)mem & 0x38) >> 3;
-	new_instruction->ModRM->rm = (*(char*)mem & 0x7);
+	new_instruction->ModRM->byte = (unsigned char*)mem;
+	new_instruction->ModRM->direct = (*(unsigned char*)mem & 0xc0) >> 6;
+	new_instruction->ModRM->reg = (*(unsigned char*)mem & 0x38) >> 3;
+	new_instruction->ModRM->rm = (*(unsigned char*)mem & 0x7);
+	mem++;
 
 	/*
 	 * Check for the SIB. SIB is optionnal, their is an SIB when:
@@ -119,10 +124,10 @@ t_instruction	*create_instruction(void *mem) {
 			return (NULL);
 		}
 		new_instruction->inst_size++;
-		new_instruction->SIB->byte = (char*)mem;
-		new_instruction->SIB->scale = (*(char*)mem & 0xc0) >> 6;
-		new_instruction->SIB->index = (*(char*)mem & 0x38) >> 3;
-		new_instruction->SIB->base = (*(char*)mem & 0x7);
+		new_instruction->SIB->byte = (unsigned char*)mem;
+		new_instruction->SIB->scale = (*(unsigned char*)mem & 0xc0) >> 6;
+		new_instruction->SIB->index = (*(unsigned char*)mem & 0x38) >> 3;
+		new_instruction->SIB->base = (*(unsigned char*)mem & 0x7);
 		mem++;
 
 		/*
@@ -134,8 +139,9 @@ t_instruction	*create_instruction(void *mem) {
 		 *  Mod == 10 -> displacement of 4 bytes
 		 */
 		new_instruction->displacement = 0;
-		if (new_instruction->ModRM->direct != 0) {
-			new_instruction->displacement = (new_instruction->ModRM->direct == 1) ? *(char*)mem : *(int*)mem;
+		if (new_instruction->ModRM->direct != 0
+				|| (new_instruction->SIB->index == 0x4 && new_instruction->SIB->base == 0x5)) {
+			new_instruction->displacement = (new_instruction->ModRM->direct == 1) ? *(unsigned char*)mem : *(unsigned int*)mem;
 			mem += (new_instruction->ModRM->direct == 1) ? 1 : 4;
 			new_instruction->inst_size += (new_instruction->ModRM->direct == 1) ? 1 : 4;
 		}
@@ -143,8 +149,7 @@ t_instruction	*create_instruction(void *mem) {
 	return (new_instruction);
 }
 
-size_t	file_size(int fd)
-{
+size_t	file_size(int fd) {
 	off_t	off;
 
 	if (fd < 0)
@@ -178,9 +183,50 @@ size_t	find_text_section(void *file_mem, void **text_start) {
 	return (-1);
 }
 
-/*void	disas_text_section(void *text, size_t size) {
-	
-}*/
+void	disas_text_section(void *text, size_t size) {
+	t_instruction	*insts;
+	int				i;
+
+	(void)size;
+	insts = create_instruction(text);
+	if (!insts)
+		return ;
+	printf("Grp prefix: %d\n", insts->nb_grp_prefix);
+	for (i = 0; i < insts->nb_grp_prefix; i++)
+		printf("  prefix %d: %#hhx\n", i, insts->grp_prefix[i]);
+
+	if (insts->rex_prefix) {
+		printf("Rex prefix:\n");
+		printf("  Byte: %#hhx\n", *(insts->rex_prefix->byte));
+		printf("  Is_64: %#hhx\n", insts->rex_prefix->is_64);
+		printf("  Sib extension: %#hhx\n", insts->rex_prefix->sib_extension);
+		printf("  Reg extension: %#hhx\n", insts->rex_prefix->reg_extension);
+		printf("  Dest reg extension: %#hhx\n", insts->rex_prefix->dest_reg_extension);
+	}
+
+	printf("Opcode: %#x\n", insts->opcode);
+
+	if (insts->ModRM) {
+		printf("Mod R/M:\n");
+		printf("  Byte: %#hhx\n", *(insts->ModRM->byte));
+		printf("  Direct: %#hhx\n", insts->ModRM->direct);
+		printf("  Reg: %#hhx\n", insts->ModRM->reg);
+		printf("  R/M: %#hhx\n", insts->ModRM->rm);
+	}
+
+	if (insts->SIB) {
+		printf("SIB:\n");
+		printf("  Byte: %#hhx\n", *(insts->SIB->byte));
+		printf("  Scale: %#hhx\n", insts->SIB->scale);
+		printf("  Index: %#hhx\n", insts->SIB->index);
+		printf("  Base: %#hhx\n", insts->SIB->base);
+	}
+
+	printf("Displacement: %#x\n", insts->displacement);
+	printf("Immediate: %#x\n", insts->immediate);
+	printf("Inst size: %lu\n", insts->inst_size);
+	return ;
+}
 
 int 	main(int argc, char **argv) {
 	int		fd;
@@ -206,6 +252,6 @@ int 	main(int argc, char **argv) {
 		return(0);
 	}
 	text_size = find_text_section(file_mem, &text_start);
-	(void)text_size;
+	disas_text_section(text_start, text_size);
 	return (0);
 }
