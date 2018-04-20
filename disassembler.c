@@ -28,6 +28,9 @@ t_instruction	*create_instruction(void *mem) {
 	new_instruction->resize = 0;
 	new_instruction->displacement = 0;
 	new_instruction->immediate = 0;
+	new_instruction->ModRM = NULL;
+	new_instruction->SIB = NULL;
+	new_instruction->rex_prefix = NULL;
 	grp_prefix_index = 0;
 
 	/*
@@ -64,8 +67,7 @@ t_instruction	*create_instruction(void *mem) {
 	 * |0100|w|r|x|b|
 	 * +----+-+-+-+-+
 	 */
-	new_instruction->rex_prefix = NULL;
-	if ((*(unsigned char*)mem >> 4) & 0x4) {
+	if (!((*(unsigned char*)mem >> 4) ^ 0x4)) {
 		new_instruction->rex_prefix = malloc(sizeof(t_rex_prefix));
 		if (!new_instruction->rex_prefix) {
 			free(new_instruction);
@@ -86,6 +88,13 @@ t_instruction	*create_instruction(void *mem) {
 	new_instruction->opcode = (*(unsigned char*)mem == 0x0f)? *(unsigned short*)mem : *(unsigned char*)mem;
 	new_instruction->inst_size += (*(unsigned char*)mem == 0x0f)? 2 : 1;
 	mem += (*(unsigned char*)mem == 0x0f)? 2 : 1;
+	if ((new_instruction->opcode >= 0x40 && new_instruction->opcode <= 0x5f))
+		return (new_instruction);
+	if ((new_instruction->opcode >= 0xb0 && new_instruction->opcode <= 0xbf)) {
+		new_instruction->immediate = *(int*)mem;
+		new_instruction->inst_size += 4;
+		return (new_instruction);
+	}
 
 	/*
 	 * Now take the ModRM field. It loog like that:
@@ -114,7 +123,6 @@ t_instruction	*create_instruction(void *mem) {
 	 * 	Mov is direct (not 0x11)
 	 * 	rm field is equal 0x100
 	 */
-	new_instruction->SIB = NULL;
 	if (new_instruction->ModRM->direct != 0x3 && new_instruction->ModRM->rm == 0x4) {
 		new_instruction->SIB = malloc(sizeof(t_sib));
 		if (!new_instruction->SIB) {
@@ -147,6 +155,15 @@ t_instruction	*create_instruction(void *mem) {
 		}
 	}
 	return (new_instruction);
+}
+
+void	delete_instruction(t_instruction **insts) {
+	if (!*insts)
+		return ;
+	free((*insts)->rex_prefix);
+	free((*insts)->ModRM);
+	free((*insts)->SIB);
+	free(*insts);
 }
 
 size_t	file_size(int fd) {
@@ -183,14 +200,9 @@ size_t	find_text_section(void *file_mem, void **text_start) {
 	return (-1);
 }
 
-void	disas_text_section(void *text, size_t size) {
-	t_instruction	*insts;
-	int				i;
+void	print_instruction(t_instruction *insts) {
+	int	i;
 
-	(void)size;
-	insts = create_instruction(text);
-	if (!insts)
-		return ;
 	printf("Grp prefix: %d\n", insts->nb_grp_prefix);
 	for (i = 0; i < insts->nb_grp_prefix; i++)
 		printf("  prefix %d: %#hhx\n", i, insts->grp_prefix[i]);
@@ -225,6 +237,41 @@ void	disas_text_section(void *text, size_t size) {
 	printf("Displacement: %#x\n", insts->displacement);
 	printf("Immediate: %#x\n", insts->immediate);
 	printf("Inst size: %lu\n", insts->inst_size);
+}
+
+void	disas_text_section(void *text, size_t size) {
+	t_instruction	*insts_lst;
+	t_instruction	*actual_inst;
+	size_t			total_size_treated;
+
+	insts_lst = NULL;
+	total_size_treated = 0;
+	while (total_size_treated < size) {
+		if (!insts_lst) {
+			insts_lst = create_instruction(text);
+			total_size_treated += insts_lst->inst_size;
+			if (!insts_lst)
+				return ;
+		} else {
+			actual_inst = insts_lst;
+			while (actual_inst->next)
+				actual_inst = actual_inst->next;
+			actual_inst->next = create_instruction(text + total_size_treated);
+			if (!actual_inst->next)
+				return ;
+			total_size_treated += ((t_instruction*)actual_inst->next)->inst_size;
+			((t_instruction*)actual_inst->next)->previous = actual_inst;
+		}
+	}
+	actual_inst = insts_lst;
+	while (actual_inst) {
+		print_instruction(actual_inst);
+		printf("\n");
+//		if (actual_inst->previous) {
+//			delete_instruction(&(t_instruction*)(actual_inst->previous));
+//		}
+		actual_inst = actual_inst->next;
+	}
 	return ;
 }
 

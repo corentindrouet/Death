@@ -51,5 +51,6 @@ size_t	find_text_section(void *file_mem, void **text_start);
 size_t	file_size(int fd);
 t_instruction	*create_instruction(void *mem);
 int				verif_prefix_values(char byte);
+void	delete_instruction(t_instruction **insts);
 
 #endif
