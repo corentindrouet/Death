@@ -1,7 +1,9 @@
 EXEC		=	Death_disas
 CC			=	gcc
 CFLAGS		=	-Wall -Wextra -Werror
-SRC			=	disassembler.c
+SRC			=	disassembler.c \
+				instruction.c \
+				functions.c
 
 OBJ			=	$(SRC:.c=.o)
 

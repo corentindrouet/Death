@@ -46,11 +46,22 @@ typedef struct	s_instruction {
 	size_t		inst_size;
 }				t_instruction;
 
+typedef struct	s_function {
+	t_instruction	*start;
+	t_instruction	*end;
+	void			*next;
+	void			*previous;
+}				t_function;
+
 void	disas_text_section(void *text, size_t size);
 size_t	find_text_section(void *file_mem, void **text_start);
 size_t	file_size(int fd);
 t_instruction	*create_instruction(void *mem);
 int				verif_prefix_values(char byte);
 void	delete_instruction(t_instruction *insts);
+void	print_instruction(t_instruction *insts);
+t_function	*create_function(t_instruction *start, t_instruction *end);
+void	delete_function_lst(t_function **lst);
+void	find_functions(t_instruction *insts_lst);
 
 #endif
