@@ -66,13 +66,9 @@ int main(int argc, char **argv) {
 	while (tr_stop < table_stop) {
 		if (!(i = regexec(&html_regex, tr_start, 3, tr_table, 0))) {
 			while ((tr_start + tr_table[0].rm_eo) < tr_stop) {
-				i = 0;
-				while (tr_table[i].rm_eo) {
-					write(1, "[=] ", 4);
-					write(1, &(tr_start[tr_table[i].rm_so]), tr_table[i].rm_eo - tr_table[i].rm_so);
-					write(1, "\n", 1);
-					i++;
-				}
+				write(1, "[=] ", 4);
+				write(1, &(tr_start[tr_table[2].rm_so]), tr_table[2].rm_eo - tr_table[2].rm_so);
+				write(1, "\n", 1);
 				tr_start += tr_table[0].rm_eo;
 				regexec(&html_regex, tr_start , 3, tr_table, 0);
 			}
