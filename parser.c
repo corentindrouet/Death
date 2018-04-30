@@ -7,6 +7,16 @@
 #include <sys/mman.h>
 #include <regex.h>
 
+int	ft_atoi_base(const char *str, int base, int total_len);
+
+typedef struct	s_opcode {
+	unsigned char	prefix;
+	unsigned char	opcode;
+	unsigned char	opcode_extension;
+	char			mnemonic[16];
+	unsigned char	operand[4];
+}				t_opcode;
+
 size_t	file_size(int fd) {
 	off_t	off;
 
@@ -32,6 +42,9 @@ int main(int argc, char **argv) {
 	char	*tr_start;
 	char	*tr_stop;
 	int		i;
+	int		td_index;
+	t_opcode	tmp;
+	char	buff[50];
 
 	if (argc != 3)
 		return (0);
@@ -54,29 +67,58 @@ int main(int argc, char **argv) {
 		close(fd_dest);
 		return (0);
 	}
-	if (!regcomp(&html_regex, "<TD[^<>]*>(<[^<>]*>)*([a-zA-Z]*)(<[^<>]*>)*<\\/[^<>]*TD>", REG_EXTENDED | REG_ICASE)) {
+	if (!regcomp(&html_regex, "<TD[^<>]*>(?[:alpha:]*\34?<[^\\/<>]*>)*([[:digit:][:alpha:]\\/\\:]*)(\34?[:alpha:]*\34?<\\/[^<>]*>)*<\\/[^<>]*TD>", REG_EXTENDED | REG_ICASE)) {
 		printf("c ok\n");
 	}
 	table_start = strcasestr(file_content, "<table");
 	table_stop = strcasestr(table_start, "</table>");
-	tr_start = strcasestr(table_start, "<tr");
-	tr_stop = strcasestr(tr_start, "</tr>");
-	tr_start = strcasestr(tr_stop, "<tr");
-	tr_stop = strcasestr(tr_start, "</tr>");
+	tr_start = strcasestr(table_start, "<tbody");
+	tr_stop = strcasestr(tr_start, "</tbody>");
+	tr_start = strcasestr(tr_stop, "<tbody");
+	tr_stop = strcasestr(tr_start, "</tbody>");
 	while (tr_stop < table_stop) {
 		if (!(i = regexec(&html_regex, tr_start, 3, tr_table, 0))) {
+			td_index = 0;
+			bzero(&tmp, sizeof(t_opcode));
 			while ((tr_start + tr_table[0].rm_eo) < tr_stop) {
-				write(1, "[=] ", 4);
-				write(1, &(tr_start[tr_table[2].rm_so]), tr_table[2].rm_eo - tr_table[2].rm_so);
-				write(1, "\n", 1);
+				switch (td_index) {
+					case 1:
+						tmp.prefix = ft_atoi_base(&(tr_start[tr_table[2].rm_so]), 16, tr_table[2].rm_eo - tr_table[2].rm_so);
+						break ;
+					case 2:
+						if (!memcmp(&(tr_start[tr_table[2].rm_so]) + 2, "+r", 2)) {
+							tmp.opcode = ft_atoi_base(&(tr_start[tr_table[2].rm_so]), 16, tr_table[2].rm_eo - tr_table[2].rm_so - 2);
+							td_index++;
+						} else {
+							tmp.opcode = ft_atoi_base(&(tr_start[tr_table[2].rm_so]), 16, tr_table[2].rm_eo - tr_table[2].rm_so);
+						}
+						break ;
+					case 3:
+						tmp.opcode_extension = ft_atoi_base(&(tr_start[tr_table[2].rm_so]), 16, tr_table[2].rm_eo - tr_table[2].rm_so);
+						break ;
+					case 10:
+						memcpy(tmp.mnemonic, &(tr_start[tr_table[2].rm_so]), tr_table[2].rm_eo - tr_table[2].rm_so);
+						break ;
+					case 11 ... 14:
+						if (tr_table[2].rm_eo - tr_table[2].rm_so > 0) {
+							bzero(buff, 0);
+							memcpy(buff, &(tr_start[tr_table[2].rm_so]), tr_table[2].rm_eo - tr_table[2].rm_so);
+							tmp.operand[td_index - 11] = 1;
+							tmp.operand[td_index - 11] += (strcasestr(buff, "imm")) ? 2 : 0;
+							tmp.operand[td_index - 11] += (strcasestr(buff, "8")) ? 4 : 0;
+						}
+						break ;
+				}
 				tr_start += tr_table[0].rm_eo;
+				td_index++;
 				regexec(&html_regex, tr_start , 3, tr_table, 0);
 			}
 		} else if (i == REG_NOMATCH) {
 			printf("NOP\n");
 		}
-		tr_start = strcasestr(tr_stop, "<tr");
-		tr_stop = strcasestr(tr_start, "</tr>");
+		printf("%hhx | %hhx | %hhx | %s | %hhx | %hhx | %hhx | %hhx\n", tmp.prefix, tmp.opcode, tmp.opcode_extension, tmp.mnemonic, tmp.operand[0], tmp.operand[1], tmp.operand[2], tmp.operand[3]);
+		tr_start = strcasestr(tr_stop, "<tbody");
+		tr_stop = strcasestr(tr_start, "</tbody>");
 	}
 	munmap(file_content, fd_size);
 	close(fd);
