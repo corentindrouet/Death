@@ -53,6 +53,15 @@ typedef struct	s_function {
 	void			*previous;
 }				t_function;
 
+typedef struct	s_opcode {
+	unsigned char	prefix;
+	unsigned char	opcode;
+	unsigned char	opcode_extension_reg;
+	unsigned char	opcode_extension_inst;
+	char			mnemonic[16];
+	unsigned char	operand[4];
+}				t_opcode;
+
 void	disas_text_section(void *text, size_t size);
 size_t	find_text_section(void *file_mem, void **text_start);
 size_t	file_size(int fd);
