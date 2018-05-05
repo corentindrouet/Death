@@ -75,39 +75,14 @@ void	disas_text_section(void *text, size_t size) {
 	return ;
 }
 
-void	print_opcode_table() {
-	t_opcode	*opcode_table;
-	void		*mmap_start;
-	int			fd_opcode;
-	size_t	fd_size;
-
-	fd_opcode = open("ptdr", O_RDONLY);
-	if (fd_opcode < 0)
-		return ;
-	fd_size = file_size(fd_opcode);
-	mmap_start = mmap(0, fd_size, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd_opcode, 0);
-	if (mmap_start == MAP_FAILED) {
-		close(fd_opcode);
-		return ;
-	}
-	opcode_table = mmap_start;
-	while ((size_t)((void*)opcode_table - mmap_start) < fd_size) {
-		printf("%hhx | %hhx| %hhx | %hhx | %s | %hhx | %hhx | %hhx | %hhx\n", opcode_table->prefix, opcode_table->opcode, opcode_table->opcode_extension_reg, opcode_table->opcode_extension_inst, opcode_table->mnemonic, opcode_table->operand[0], opcode_table->operand[1], opcode_table->operand[2], opcode_table->operand[3]);
-		opcode_table++;
-	}
-	munmap(mmap_start, fd_size);
-	close(fd_opcode);
-}
-
 int 	main(int argc, char **argv) {
 	int		fd;
 	size_t	fd_size;
 	void	*file_mem;
 	void	*text_start;
 	size_t	text_size;
+	t_opcode	*tmp;
 
-	print_opcode_table();
-	exit(0);
 	if (argc != 2) {
 		printf("Not enough arguments!\n");
 		return (0);

@@ -1,5 +1,42 @@
 #include "disassembler.h"
 
+t_opcode	*find_opcode_instruction(U_CHAR opcode_to_find, U_CHAR opcode_inst_ext, char destroy_table) {
+	static t_opcode	*opcode_table = NULL;
+	static void		*mmap_start = NULL;
+	static size_t	fd_size = 0;
+	int				fd_opcode;
+
+	if (!mmap_start) {
+		fd_opcode = open("ptdr", O_RDONLY);
+		if (fd_opcode < 0)
+			return (NULL);
+		fd_size = file_size(fd_opcode);
+		mmap_start = mmap(0, fd_size, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd_opcode, 0);
+		if (mmap_start == MAP_FAILED) {
+			close(fd_opcode);
+			return (NULL);
+		}
+		close(fd_opcode);
+	} else if (destroy_table) {
+		munmap(mmap_start, fd_size);
+		mmap_start = NULL;
+		return (NULL);
+	}
+
+	opcode_table = mmap_start;
+	while ((size_t)((void*)opcode_table - mmap_start) < fd_size) {
+		if (opcode_table->opcode_extension_reg != 1 && opcode_table->opcode == opcode_to_find
+				&& opcode_table->opcode_extension_inst == opcode_inst_ext)
+			return (opcode_table);
+		else if (opcode_table->opcode_extension_reg == 1
+				&& opcode_table->opcode <= opcode_to_find && (opcode_table->opcode + 8) > opcode_to_find
+				&& opcode_table->opcode_extension_inst == opcode_inst_ext)
+			return (opcode_table);
+		opcode_table++;
+	}
+	return (NULL);
+}
+
 int				verif_prefix_values(char byte) {
 	static char	grp_prefix_values[14] = {0xf0, 0xf2, 0xf3, 0x2e, 0x36, 0x3e, 0x26, 0x64, 0x65, 0x2e, 0x3e, 0x66, 0x67, 0x00};
 	int			i;
@@ -16,6 +53,7 @@ int				verif_prefix_values(char byte) {
 t_instruction	*create_instruction(void *mem) {
 	t_instruction	*new_instruction;
 	int				grp_prefix_index;
+	t_opcode		*op_reference;
 
 	new_instruction = malloc(sizeof(t_instruction));
 	if (!new_instruction)
@@ -87,6 +125,7 @@ t_instruction	*create_instruction(void *mem) {
 	 */
 	new_instruction->opcode = (*(unsigned char*)mem == 0x0f)? *(unsigned short*)mem : *(unsigned char*)mem;
 	new_instruction->inst_size += (*(unsigned char*)mem == 0x0f)? 2 : 1;
+	op_reference = find_opcode_instruction(new_instruction->opcode, )
 	mem += (*(unsigned char*)mem == 0x0f)? 2 : 1;
 	if ((new_instruction->opcode >= 0x40 && new_instruction->opcode <= 0x5f))
 		return (new_instruction);

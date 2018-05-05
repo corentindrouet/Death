@@ -43,6 +43,41 @@ void	replace_character(char *str, size_t len, char c_to_replace, char c_replacin
 	}
 }
 
+char	find_register(char *register_str) {
+	static char table[16][5][5] = {
+		{"al", "ax", "eax", "rax"},
+		{"cl", "cx", "ecx", "rcx"},
+		{"dl", "dx", "edx", "rdx"},
+		{"bl", "bx", "ebx", "rbx"},
+		{"ah", "sp", "esp", "rsp"},
+		{"ch", "bp", "ebp", "rbp"},
+		{"dh", "si", "esi", "rsi"},
+		{"bh", "di", "edi", "rdi"},
+		{"r8b", "r8w", "r8d", "r8"},
+		{"r9b", "r9w", "r9d", "r9"},
+		{"r10b", "r10w", "r10d", "r10"},
+		{"r11b", "r11w", "r11d", "r11"},
+		{"r12b", "r12w", "r12d", "r12"},
+		{"r13b", "r13w", "r13d", "r13"},
+		{"r14b", "r14w", "r14d", "r14"},
+		{"r15b", "r15w", "r15d", "r15"}
+	};
+	char	i;
+	char	j;
+
+	i = 0;
+	while (i < 16) {
+		j = 0;
+		while (j < 4) {
+			if (strcasestr(table[i][j], register_str))
+				return (i);
+			j++;
+		}
+		i++;
+	}
+	return (-1);
+}
+
 int main(int argc, char **argv) {
 	int		fd;
 	int		fd_dest;
@@ -58,6 +93,7 @@ int main(int argc, char **argv) {
 	int		td_index;
 	t_opcode	tmp;
 	char	buff[50];
+	char register_code;
 
 	if (argc != 3)
 		return (0);
@@ -80,16 +116,13 @@ int main(int argc, char **argv) {
 		close(fd_dest);
 		return (0);
 	}
-	if (!regcomp(&html_regex, "<TD[^<>]*>[\n]?([ -\\/]?[[:alpha:]]*[ -\\/]?<[^\\/<>]*>[\n]?)*([[:digit:][:alpha:]\\/\\:]*)[\n]?([ -\\/]?[[:alpha:]]*[ -\\/]?<\\/[^<>]*>[\n]?)*<\\/[^<>]*TD>", REG_EXTENDED | REG_ICASE)) {
+	if (!regcomp(&html_regex, "<TD[^<>]*>[\n]?([ -\\/]?[[:alpha:]]*[ -\\/]?<[^\\/<>]*>[\n]?)*([[:digit:][:alpha:]\\+\\/\\:]*)[\n]?([ -\\/]?[[:alpha:]]*[ -\\/]?<\\/[^<>]*>[\n]?)*<\\/[^<>]*TD>", REG_EXTENDED | REG_ICASE)) {
 		printf("c ok\n");
 	}
 	table_start = strcasestr(file_content, "<table");
 	table_stop = strcasestr(table_start, "</table>");
-//	replace_character(table_start, table_stop - table_start, '"', ' ');
 	tr_start = strcasestr(table_start, "<tbody");
 	tr_stop = strcasestr(tr_start, "</tbody>");
-//	tr_start = strcasestr(tr_stop, "<tbody");
-//	tr_stop = strcasestr(tr_start, "</tbody>");
 	while (tr_stop < table_stop) {
 		if (!(i = regexec(&html_regex, tr_start, 3, tr_table, 0))) {
 			td_index = 0;
@@ -103,6 +136,7 @@ int main(int argc, char **argv) {
 					case 2:
 						if (!memcmp(&(tr_start[tr_table[2].rm_so]) + 2, "+r", 2)) {
 							tmp.opcode = ft_atoi_base(&(tr_start[tr_table[2].rm_so]), 16, tr_table[2].rm_eo - tr_table[2].rm_so - 2);
+							tmp.opcode_extension_reg = 1;
 							td_index++;
 						} else {
 							tmp.opcode = ft_atoi_base(&(tr_start[tr_table[2].rm_so]), 16, tr_table[2].rm_eo - tr_table[2].rm_so);
@@ -119,11 +153,16 @@ int main(int argc, char **argv) {
 						break ;
 					case 11 ... 14:
 						if (tr_table[2].rm_eo - tr_table[2].rm_so > 0) {
-							bzero(buff, 0);
+							bzero(buff, 50);
 							memcpy(buff, &(tr_start[tr_table[2].rm_so]), tr_table[2].rm_eo - tr_table[2].rm_so);
 							tmp.operand[td_index - 11] = 1;
 							tmp.operand[td_index - 11] += (strcasestr(buff, "imm")) ? 2 : 0;
 							tmp.operand[td_index - 11] += (strcasestr(buff, "8")) ? 4 : 0;
+							if ((register_code = find_register(buff)) != -1) {
+								register_code += 16;
+								register_code = register_code << 3;
+								tmp.operand[td_index - 11] += register_code;
+							}
 						}
 						break ;
 				}
@@ -135,7 +174,7 @@ int main(int argc, char **argv) {
 			printf("NOP\n");
 		}
 		write(fd_dest, &tmp, sizeof(tmp));
-		//printf("%hhx | %hhx | %hhx | %s | %hhx | %hhx | %hhx | %hhx\n", tmp.prefix, tmp.opcode, tmp.opcode_extension, tmp.mnemonic, tmp.operand[0], tmp.operand[1], tmp.operand[2], tmp.operand[3]);
+		printf("%hhx | %hhx | %hhx | %hhx | %s | %hhx | %hhx | %hhx | %hhx\n", tmp.prefix, tmp.opcode, tmp.opcode_extension_reg, tmp.opcode_extension_inst, tmp.mnemonic, tmp.operand[0], tmp.operand[1], tmp.operand[2], tmp.operand[3]);
 		tr_start = strcasestr(tr_stop, "<tbody");
 		tr_stop = strcasestr(tr_start, "</tbody>");
 	}

@@ -7,37 +7,38 @@
 # include <elf.h>
 # include <string.h>
 # include <stdlib.h>
+# define U_CHAR unsigned char
 
 typedef struct	s_rex_prefix {
-	unsigned char		*byte;
-	unsigned char		is_64;
-	unsigned char		sib_extension;
-	unsigned char		reg_extension;
-	unsigned char		dest_reg_extension;
+	U_CHAR		*byte;
+	U_CHAR		is_64;
+	U_CHAR		sib_extension;
+	U_CHAR		reg_extension;
+	U_CHAR		dest_reg_extension;
 }				t_rex_prefix;
 
 typedef struct	s_mod_rm {
-	unsigned char		*byte;
-	unsigned char		direct;
-	unsigned char		reg;
-	unsigned char		rm;
+	U_CHAR		*byte;
+	U_CHAR		direct;
+	U_CHAR		reg;
+	U_CHAR		rm;
 }				t_mod_rm;
 
 typedef struct	s_sib {
-	unsigned char		*byte;
-	unsigned char		scale;
-	unsigned char		index;
-	unsigned char		base;
+	U_CHAR		*byte;
+	U_CHAR		scale;
+	U_CHAR		index;
+	U_CHAR		base;
 }				t_sib;
 
 typedef struct	s_instruction {
-	unsigned char		*instruction;
-	unsigned char		grp_prefix[4];
-	int					nb_grp_prefix;
+	U_CHAR		*instruction;
+	U_CHAR		grp_prefix[4];
+	int			nb_grp_prefix;
 	t_rex_prefix	*rex_prefix;
 	t_mod_rm	*ModRM;
 	t_sib		*SIB;
-	unsigned char		resize;
+	U_CHAR		resize;
 	unsigned int			opcode;
 	unsigned int			displacement;
 	unsigned int			immediate;
@@ -54,12 +55,12 @@ typedef struct	s_function {
 }				t_function;
 
 typedef struct	s_opcode {
-	unsigned char	prefix;
-	unsigned char	opcode;
-	unsigned char	opcode_extension_reg;
-	unsigned char	opcode_extension_inst;
+	U_CHAR	prefix;
+	U_CHAR	opcode;
+	U_CHAR	opcode_extension_reg;
+	U_CHAR	opcode_extension_inst;
 	char			mnemonic[16];
-	unsigned char	operand[4];
+	U_CHAR	operand[4];
 }				t_opcode;
 
 void	disas_text_section(void *text, size_t size);
@@ -72,5 +73,6 @@ void	print_instruction(t_instruction *insts);
 t_function	*create_function(t_instruction *start, t_instruction *end);
 void	delete_function_lst(t_function **lst);
 void	find_functions(t_instruction *insts_lst);
+t_opcode	*find_opcode_instruction(U_CHAR opcode_to_find, U_CHAR opcode_inst_ext, char destroy_table);
 
 #endif
