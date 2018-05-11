@@ -59,7 +59,7 @@ typedef struct	s_opcode {
 	U_CHAR	opcode;
 	U_CHAR	opcode_extension_reg;
 	U_CHAR	opcode_extension_inst;
-	char			mnemonic[16];
+	char	mnemonic[16];
 	U_CHAR	operand[4];
 }				t_opcode;
 

@@ -157,7 +157,7 @@ int main(int argc, char **argv) {
 							memcpy(buff, &(tr_start[tr_table[2].rm_so]), tr_table[2].rm_eo - tr_table[2].rm_so);
 							tmp.operand[td_index - 11] = 1;
 							tmp.operand[td_index - 11] += (strcasestr(buff, "imm")) ? 2 : 0;
-							tmp.operand[td_index - 11] += (strcasestr(buff, "8")) ? 4 : 0;
+							tmp.operand[td_index - 11] += (strcasestr(buff, "m8")) ? 4 : 0;
 							if ((register_code = find_register(buff)) != -1) {
 								register_code += 16;
 								register_code = register_code << 3;
