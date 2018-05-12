@@ -94,6 +94,7 @@ int main(int argc, char **argv) {
 	t_opcode	tmp;
 	char	buff[50];
 	char register_code;
+	int		first_table;
 
 	if (argc != 3)
 		return (0);
@@ -123,6 +124,7 @@ int main(int argc, char **argv) {
 	table_stop = strcasestr(table_start, "</table>");
 	tr_start = strcasestr(table_start, "<tbody");
 	tr_stop = strcasestr(tr_start, "</tbody>");
+	first_table = 0;
 	while (tr_stop < table_stop) {
 		if (!(i = regexec(&html_regex, tr_start, 3, tr_table, 0))) {
 			td_index = 0;
@@ -177,9 +179,16 @@ int main(int argc, char **argv) {
 			printf("NOP\n");
 		}
 		write(fd_dest, &tmp, sizeof(tmp));
-		printf("%hhx | %hhx | %hhx | %hhx | %s | %hhx | %hhx | %hhx | %hhx\n", tmp.prefix, tmp.opcode, tmp.opcode_extension_reg, tmp.opcode_extension_inst, tmp.mnemonic, tmp.operand[0], tmp.operand[1], tmp.operand[2], tmp.operand[3]);
+//		printf("%hhx | %hhx | %hhx | %hhx | %s | %hhx | %hhx | %hhx | %hhx\n", tmp.prefix, tmp.opcode, tmp.opcode_extension_reg, tmp.opcode_extension_inst, tmp.mnemonic, tmp.operand[0], tmp.operand[1], tmp.operand[2], tmp.operand[3]);
 		tr_start = strcasestr(tr_stop, "<tbody");
 		tr_stop = strcasestr(tr_start, "</tbody>");
+		if (!first_table && tr_stop < table_stop) {
+			table_start = strcasestr(file_content, "<table");
+			table_stop = strcasestr(table_start, "</table>");
+			tr_start = strcasestr(table_start, "<tbody");
+			tr_stop = strcasestr(tr_start, "</tbody>");
+			first_table++;
+		}
 	}
 	munmap(file_content, fd_size);
 	close(fd);

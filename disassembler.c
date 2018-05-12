@@ -52,11 +52,15 @@ void	disas_text_section(void *text, size_t size) {
 			actual_inst = insts_lst;
 			while (actual_inst->next)
 				actual_inst = actual_inst->next;
+			printf("%lu\n", total_size_treated);
 			actual_inst->next = create_instruction(text + total_size_treated);
 			if (!actual_inst->next)
 				return ;
-			total_size_treated += ((t_instruction*)actual_inst->next)->inst_size;
-			((t_instruction*)actual_inst->next)->previous = actual_inst;
+//			print_instruction(actual_inst->next);
+//			printf("\n");
+//			fflush(stdout);
+			total_size_treated += ((t_instruction*)(actual_inst->next))->inst_size;
+			((t_instruction*)(actual_inst->next))->previous = actual_inst;
 		}
 	}
 	actual_inst = insts_lst;
@@ -65,7 +69,7 @@ void	disas_text_section(void *text, size_t size) {
 		printf("\n");
 		actual_inst = actual_inst->next;
 	}
-	find_functions(insts_lst);
+//	find_functions(insts_lst);
 	actual_inst = insts_lst;
 	while (actual_inst) {
 		tmp = actual_inst->next;

@@ -1,6 +1,6 @@
 #include "disassembler.h"
 
-t_opcode	*find_opcode_instruction(U_CHAR opcode_to_find, U_CHAR opcode_inst_ext, char destroy_table) {
+t_opcode	*find_opcode_instruction(U_CHAR opcode_to_find, U_CHAR prefix, U_CHAR opcode_inst_ext, char destroy_table) {
 	static t_opcode	*opcode_table = NULL;
 	static void		*mmap_start = NULL;
 	static size_t	fd_size = 0;
@@ -26,18 +26,18 @@ t_opcode	*find_opcode_instruction(U_CHAR opcode_to_find, U_CHAR opcode_inst_ext,
 	opcode_table = mmap_start;
 	while ((size_t)((void*)opcode_table - mmap_start) < fd_size) {
 		if (opcode_inst_ext >= 8) {
-			if (opcode_table->opcode_extension_reg != 1 && opcode_table->opcode == opcode_to_find)
+			if (opcode_table->opcode_extension_reg != 1 && opcode_table->opcode == opcode_to_find && opcode_table->prefix == prefix)
 				return (opcode_table);
 			else if (opcode_table->opcode_extension_reg == 1
-					&& opcode_table->opcode <= opcode_to_find && (opcode_table->opcode + 8) > opcode_to_find)
+					&& opcode_table->opcode <= opcode_to_find && (opcode_table->opcode + 8) > opcode_to_find && opcode_table->prefix == prefix)
 				return (opcode_table);
 		} else {
 			if (opcode_table->opcode_extension_reg != 1 && opcode_table->opcode == opcode_to_find
-					&& opcode_table->opcode_extension_inst == opcode_inst_ext)
+					&& opcode_table->opcode_extension_inst == opcode_inst_ext && opcode_table->prefix == prefix)
 				return (opcode_table);
 			else if (opcode_table->opcode_extension_reg == 1
 					&& opcode_table->opcode <= opcode_to_find && (opcode_table->opcode + 8) > opcode_to_find
-					&& opcode_table->opcode_extension_inst == opcode_inst_ext)
+					&& opcode_table->opcode_extension_inst == opcode_inst_ext && opcode_table->prefix == prefix)
 				return (opcode_table);
 		}
 		opcode_table++;
@@ -132,10 +132,17 @@ t_instruction	*create_instruction(void *mem) {
 	/*
 	 * Opcode is directly after prefixs, but can be on 1 or 2 bytes, depending of prefix
 	 */
-	new_instruction->opcode = (*(unsigned char*)mem == 0x0f)? *(unsigned short*)mem : *(unsigned char*)mem;
-	new_instruction->inst_size += (*(unsigned char*)mem == 0x0f)? 2 : 1;
-	op_reference = find_opcode_instruction(new_instruction->opcode, 8, 0);
-	mem += (*(unsigned char*)mem == 0x0f)? 2 : 1;
+	if (*(unsigned char*)mem == 0x0f) {
+		new_instruction->opcode = *(unsigned short*)mem;
+		new_instruction->inst_size += 2;
+		op_reference = find_opcode_instruction(*(unsigned char*)(mem + 1), *(unsigned char*)mem, 8, 0);
+		mem += 2;
+	} else {
+		new_instruction->opcode = *(unsigned char*)mem;
+		new_instruction->inst_size += 1;
+		op_reference = find_opcode_instruction(new_instruction->opcode, 0, 8, 0);
+		mem++;
+	}
 //	if ((new_instruction->opcode >= 0x40 && new_instruction->opcode <= 0x5f))
 //		return (new_instruction);
 //	if ((new_instruction->opcode >= 0xb0 && new_instruction->opcode <= 0xbf)) {

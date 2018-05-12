@@ -73,6 +73,6 @@ void	print_instruction(t_instruction *insts);
 t_function	*create_function(t_instruction *start, t_instruction *end);
 void	delete_function_lst(t_function **lst);
 void	find_functions(t_instruction *insts_lst);
-t_opcode	*find_opcode_instruction(U_CHAR opcode_to_find, U_CHAR opcode_inst_ext, char destroy_table);
+t_opcode	*find_opcode_instruction(U_CHAR opcode_to_find, U_CHAR prefix, U_CHAR opcode_inst_ext, char destroy_table);
 
 #endif
