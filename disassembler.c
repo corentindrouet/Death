@@ -81,7 +81,6 @@ int 	main(int argc, char **argv) {
 	void	*file_mem;
 	void	*text_start;
 	size_t	text_size;
-	t_opcode	*tmp;
 
 	if (argc != 2) {
 		printf("Not enough arguments!\n");

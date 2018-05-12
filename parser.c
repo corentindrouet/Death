@@ -158,7 +158,10 @@ int main(int argc, char **argv) {
 							tmp.operand[td_index - 11] = 1;
 							tmp.operand[td_index - 11] += (strcasestr(buff, "imm")) ? 2 : 0;
 							tmp.operand[td_index - 11] += (strcasestr(buff, "m8")) ? 4 : 0;
-							if ((register_code = find_register(buff)) != -1) {
+							if (tmp.operand[td_index - 11] & 0x2) {
+								tmp.operand[td_index - 11] += (strcasestr(buff, "imm16")) ? 8 : 0;
+								tmp.operand[td_index - 11] += (strcasestr(buff, "imm32")) ? 16 : 0;
+							} else if ((register_code = find_register(buff)) != -1) {
 								register_code += 16;
 								register_code = register_code << 3;
 								tmp.operand[td_index - 11] += register_code;

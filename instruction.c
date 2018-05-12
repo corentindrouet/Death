@@ -62,6 +62,7 @@ t_instruction	*create_instruction(void *mem) {
 	t_instruction	*new_instruction;
 	int				grp_prefix_index;
 	t_opcode		*op_reference;
+	int				i;
 
 	new_instruction = malloc(sizeof(t_instruction));
 	if (!new_instruction)
@@ -135,13 +136,13 @@ t_instruction	*create_instruction(void *mem) {
 	new_instruction->inst_size += (*(unsigned char*)mem == 0x0f)? 2 : 1;
 	op_reference = find_opcode_instruction(new_instruction->opcode, 8, 0);
 	mem += (*(unsigned char*)mem == 0x0f)? 2 : 1;
-	if ((new_instruction->opcode >= 0x40 && new_instruction->opcode <= 0x5f))
-		return (new_instruction);
-	if ((new_instruction->opcode >= 0xb0 && new_instruction->opcode <= 0xbf)) {
-		new_instruction->immediate = *(int*)mem;
-		new_instruction->inst_size += 4;
-		return (new_instruction);
-	}
+//	if ((new_instruction->opcode >= 0x40 && new_instruction->opcode <= 0x5f))
+//		return (new_instruction);
+//	if ((new_instruction->opcode >= 0xb0 && new_instruction->opcode <= 0xbf)) {
+//		new_instruction->immediate = *(int*)mem;
+//		new_instruction->inst_size += 4;
+//		return (new_instruction);
+//	}
 
 	/*
 	 * Now take the ModRM field. It loog like that:
@@ -152,25 +153,27 @@ t_instruction	*create_instruction(void *mem) {
 	 * Reg is for the register use in the instruction
 	 * r/m can be register or memory.
 	 */
-	new_instruction->ModRM = malloc(sizeof(t_mod_rm));
-	if (!new_instruction->ModRM) {
-		free(new_instruction->rex_prefix);
-		free(new_instruction);
-		return (NULL);
+	if (!(op_reference->opcode_extension_reg)) {
+		new_instruction->ModRM = malloc(sizeof(t_mod_rm));
+		if (!new_instruction->ModRM) {
+			free(new_instruction->rex_prefix);
+			free(new_instruction);
+			return (NULL);
+		}
+		new_instruction->inst_size++;
+		new_instruction->ModRM->byte = (unsigned char*)mem;
+		new_instruction->ModRM->direct = (*(unsigned char*)mem & 0xc0) >> 6;
+		new_instruction->ModRM->reg = (*(unsigned char*)mem & 0x38) >> 3;
+		new_instruction->ModRM->rm = (*(unsigned char*)mem & 0x7);
+		mem++;
 	}
-	new_instruction->inst_size++;
-	new_instruction->ModRM->byte = (unsigned char*)mem;
-	new_instruction->ModRM->direct = (*(unsigned char*)mem & 0xc0) >> 6;
-	new_instruction->ModRM->reg = (*(unsigned char*)mem & 0x38) >> 3;
-	new_instruction->ModRM->rm = (*(unsigned char*)mem & 0x7);
-	mem++;
 
 	/*
 	 * Check for the SIB. SIB is optionnal, their is an SIB when:
 	 * 	Mov is direct (not 0x11)
 	 * 	rm field is equal 0x100
 	 */
-	if (new_instruction->ModRM->direct != 0x3 && new_instruction->ModRM->rm == 0x4) {
+	if (new_instruction->ModRM && new_instruction->ModRM->direct != 0x3 && new_instruction->ModRM->rm == 0x4) {
 		new_instruction->SIB = malloc(sizeof(t_sib));
 		if (!new_instruction->SIB) {
 			free(new_instruction->ModRM);
@@ -200,6 +203,26 @@ t_instruction	*create_instruction(void *mem) {
 			mem += (new_instruction->ModRM->direct == 1) ? 1 : 4;
 			new_instruction->inst_size += (new_instruction->ModRM->direct == 1) ? 1 : 4;
 		}
+	}
+
+	i = 0;
+	while (op_reference->operand[i]) {
+		if (op_reference->operand[i] & 0x2) {
+			if (op_reference->operand[i] & 0x4) {
+				new_instruction->immediate = *(unsigned char*)mem;
+				mem++;
+				new_instruction->inst_size++;
+			} else if (op_reference->operand[i] & 0x8) {
+				new_instruction->immediate = *(unsigned short*)mem;
+				mem += 2;
+				new_instruction->inst_size += 2;
+			} else if (op_reference->operand[i] & 0x10) {
+				new_instruction->immediate = *(unsigned int*)mem;
+				mem += 4;
+				new_instruction->inst_size += 4;
+			}
+		}
+		i++;
 	}
 	return (new_instruction);
 }
