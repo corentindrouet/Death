@@ -63,6 +63,7 @@ t_instruction	*create_instruction(void *mem) {
 	int				grp_prefix_index;
 	t_opcode		*op_reference;
 	int				i;
+	int				need_modrm;
 
 	new_instruction = malloc(sizeof(t_instruction));
 	if (!new_instruction)
@@ -74,7 +75,6 @@ t_instruction	*create_instruction(void *mem) {
 	new_instruction->instruction = mem;
 	new_instruction->resize = 0;
 	new_instruction->displacement = 0;
-	new_instruction->immediate = 0;
 	new_instruction->ModRM = NULL;
 	new_instruction->SIB = NULL;
 	new_instruction->rex_prefix = NULL;
@@ -144,6 +144,14 @@ t_instruction	*create_instruction(void *mem) {
 //		return (new_instruction);
 //	}
 
+	i = 0;
+	need_modrm = 0;
+	while (op_reference->operand[i]) {
+		if (!(op_reference->operand[i] & 0x2) && !(op_reference->operand[i] & 0x80))
+			need_modrm++;
+		i++;
+	}
+
 	/*
 	 * Now take the ModRM field. It loog like that:
 	 * +--+--+--+--+--+--+--+--+
@@ -153,7 +161,7 @@ t_instruction	*create_instruction(void *mem) {
 	 * Reg is for the register use in the instruction
 	 * r/m can be register or memory.
 	 */
-	if (!(op_reference->opcode_extension_reg)) {
+	if (!(op_reference->opcode_extension_reg) && need_modrm) {
 		new_instruction->ModRM = malloc(sizeof(t_mod_rm));
 		if (!new_instruction->ModRM) {
 			free(new_instruction->rex_prefix);
@@ -209,15 +217,15 @@ t_instruction	*create_instruction(void *mem) {
 	while (op_reference->operand[i]) {
 		if (op_reference->operand[i] & 0x2) {
 			if (op_reference->operand[i] & 0x4) {
-				new_instruction->immediate = *(unsigned char*)mem;
+				new_instruction->immediate[i] = *(unsigned char*)mem;
 				mem++;
 				new_instruction->inst_size++;
 			} else if (op_reference->operand[i] & 0x8) {
-				new_instruction->immediate = *(unsigned short*)mem;
+				new_instruction->immediate[i] = *(unsigned short*)mem;
 				mem += 2;
 				new_instruction->inst_size += 2;
 			} else if (op_reference->operand[i] & 0x10) {
-				new_instruction->immediate = *(unsigned int*)mem;
+				new_instruction->immediate[i] = *(unsigned int*)mem;
 				mem += 4;
 				new_instruction->inst_size += 4;
 			}
@@ -275,6 +283,6 @@ void	print_instruction(t_instruction *insts) {
 	}
 
 	printf("Displacement: %#x\n", insts->displacement);
-	printf("Immediate: %#x\n", insts->immediate);
+	printf("Immediate: %#x | %#x | %#x | %#x\n", insts->immediate[0], insts->immediate[1], insts->immediate[2], insts->immediate[3]);
 	printf("Inst size: %lu\n", insts->inst_size);
 }

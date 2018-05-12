@@ -41,7 +41,7 @@ typedef struct	s_instruction {
 	U_CHAR		resize;
 	unsigned int			opcode;
 	unsigned int			displacement;
-	unsigned int			immediate;
+	unsigned int			immediate[4];
 	void		*next;
 	void		*previous;
 	size_t		inst_size;
