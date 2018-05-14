@@ -18,7 +18,7 @@ $(EXEC): $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $^
 	curl -o $(DL_SRC) http://ref.x86asm.net/coder64.html
 	$(CC) -o $(PARSOR_EXEC) $(PARSOR_SRC)
-	./$(PARSOR_EXEC)
+	./$(PARSOR_EXEC) $(DL_SRC) $(DL_PARSED)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
@@ -27,7 +27,7 @@ clean:
 	rm -f $(OBJ) $(DL_SRC)
 
 fclean: clean
-	rm -rf $(EXEC) $(DL_PARSED)
+	rm -rf $(EXEC) $(DL_PARSED) $(PARSOR_EXEC)
 
 re: fclean all
 
