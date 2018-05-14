@@ -163,10 +163,15 @@ int main(int argc, char **argv) {
 							if (tmp.operand[td_index - 11] & 0x2) {
 								tmp.operand[td_index - 11] += (strcasestr(buff, "imm16")) ? 8 : 0;
 								tmp.operand[td_index - 11] += (strcasestr(buff, "imm32")) ? 16 : 0;
+								tmp.operand[td_index - 11] += (strcasestr(buff, "imm16/32")) ? 16 : 0;
+								tmp.operand[td_index - 11] += (strcasestr(buff, "imm8/16/32")) ? 16 : 0;
 							} else if ((register_code = find_register(buff)) != -1) {
 								register_code += 16;
 								register_code = register_code << 3;
 								tmp.operand[td_index - 11] += register_code;
+							} else if (!strcmp(buff, "m")) {
+								tmp.operand[td_index - 11] += 2;
+								tmp.operand[td_index - 11] += 16;
 							}
 						}
 						break ;
@@ -182,8 +187,8 @@ int main(int argc, char **argv) {
 //		printf("%hhx | %hhx | %hhx | %hhx | %s | %hhx | %hhx | %hhx | %hhx\n", tmp.prefix, tmp.opcode, tmp.opcode_extension_reg, tmp.opcode_extension_inst, tmp.mnemonic, tmp.operand[0], tmp.operand[1], tmp.operand[2], tmp.operand[3]);
 		tr_start = strcasestr(tr_stop, "<tbody");
 		tr_stop = strcasestr(tr_start, "</tbody>");
-		if (!first_table && tr_stop < table_stop) {
-			table_start = strcasestr(file_content, "<table");
+		if (!first_table && tr_stop > table_stop) {
+			table_start = strcasestr(table_stop, "<table");
 			table_stop = strcasestr(table_start, "</table>");
 			tr_start = strcasestr(table_start, "<tbody");
 			tr_stop = strcasestr(tr_start, "</tbody>");

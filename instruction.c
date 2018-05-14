@@ -7,7 +7,7 @@ t_opcode	*find_opcode_instruction(U_CHAR opcode_to_find, U_CHAR prefix, U_CHAR o
 	int				fd_opcode;
 
 	if (!mmap_start) {
-		fd_opcode = open("ptdr", O_RDONLY);
+		fd_opcode = open("opcode_table", O_RDONLY);
 		if (fd_opcode < 0)
 			return (NULL);
 		fd_size = file_size(fd_opcode);
@@ -73,11 +73,11 @@ t_instruction	*create_instruction(void *mem) {
 	new_instruction->next = NULL;
 	new_instruction->previous = NULL;
 	new_instruction->instruction = mem;
-	new_instruction->resize = 0;
 	new_instruction->displacement = 0;
 	new_instruction->ModRM = NULL;
 	new_instruction->SIB = NULL;
 	new_instruction->rex_prefix = NULL;
+	new_instruction->resize = 0;
 	grp_prefix_index = 0;
 
 	/*
@@ -101,6 +101,8 @@ t_instruction	*create_instruction(void *mem) {
 	 * 	0x67 Address size override
 	 */
 	while (grp_prefix_index < 4 && verif_prefix_values(*(unsigned char*)mem)) {
+		if (*(unsigned char*)mem == 0x66)
+			new_instruction->resize = 1;
 		new_instruction->grp_prefix[grp_prefix_index] = *(unsigned char*)mem;
 		mem++;
 		grp_prefix_index++;
@@ -132,10 +134,14 @@ t_instruction	*create_instruction(void *mem) {
 	/*
 	 * Opcode is directly after prefixs, but can be on 1 or 2 bytes, depending of prefix
 	 */
+	printf("%#hhx | %#hhx\n", *(unsigned char*)mem, *(unsigned char*)(mem + 1));
+	fflush(stdout);
 	if (*(unsigned char*)mem == 0x0f) {
 		new_instruction->opcode = *(unsigned short*)mem;
 		new_instruction->inst_size += 2;
 		op_reference = find_opcode_instruction(*(unsigned char*)(mem + 1), *(unsigned char*)mem, 8, 0);
+		printf("%p\n", op_reference);
+		fflush(stdout);
 		mem += 2;
 	} else {
 		new_instruction->opcode = *(unsigned char*)mem;
@@ -223,18 +229,18 @@ t_instruction	*create_instruction(void *mem) {
 	i = 0;
 	while (op_reference->operand[i]) {
 		if (op_reference->operand[i] & 0x2) {
-			if (op_reference->operand[i] & 0x4) {
-				new_instruction->immediate[i] = *(unsigned char*)mem;
-				mem++;
-				new_instruction->inst_size++;
+			if (new_instruction->resize == 0 && op_reference->operand[i] & 0x10) {
+				new_instruction->immediate[i] = *(unsigned int*)mem;
+				mem += 4;
+				new_instruction->inst_size += 4;
 			} else if (op_reference->operand[i] & 0x8) {
 				new_instruction->immediate[i] = *(unsigned short*)mem;
 				mem += 2;
 				new_instruction->inst_size += 2;
-			} else if (op_reference->operand[i] & 0x10) {
-				new_instruction->immediate[i] = *(unsigned int*)mem;
-				mem += 4;
-				new_instruction->inst_size += 4;
+			} else if (op_reference->operand[i] & 0x4) {
+				new_instruction->immediate[i] = *(unsigned char*)mem;
+				mem++;
+				new_instruction->inst_size++;
 			}
 		}
 		i++;

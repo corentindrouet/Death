@@ -4,22 +4,30 @@ CFLAGS		=	-Wall -Wextra -Werror
 SRC			=	disassembler.c \
 				instruction.c \
 				functions.c
-
 OBJ			=	$(SRC:.c=.o)
+PARSOR_SRC	=	ft_atoi_base.c \
+				parser.c
+PARSOR_EXEC	=	parsor
+DL_SRC		=	opcode_html
+DL_PARSED	=	opcode_table
+
 
 all: $(EXEC)
 
 $(EXEC): $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $^
+	curl -o $(DL_SRC) http://ref.x86asm.net/coder64.html
+	$(CC) -o $(PARSOR_EXEC) $(PARSOR_SRC)
+	./$(PARSOR_EXEC)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 clean:
-	rm -f $(OBJ)
+	rm -f $(OBJ) $(DL_SRC)
 
 fclean: clean
-	rm -rf $(EXEC)
+	rm -rf $(EXEC) $(DL_PARSED)
 
 re: fclean all
 

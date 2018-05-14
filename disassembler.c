@@ -48,6 +48,9 @@ void	disas_text_section(void *text, size_t size) {
 			total_size_treated += insts_lst->inst_size;
 			if (!insts_lst)
 				return ;
+			print_instruction(insts_lst);
+			printf("\n");
+			fflush(stdout);
 		} else {
 			actual_inst = insts_lst;
 			while (actual_inst->next)
@@ -56,9 +59,9 @@ void	disas_text_section(void *text, size_t size) {
 			actual_inst->next = create_instruction(text + total_size_treated);
 			if (!actual_inst->next)
 				return ;
-//			print_instruction(actual_inst->next);
-//			printf("\n");
-//			fflush(stdout);
+			print_instruction(actual_inst->next);
+			printf("\n");
+			fflush(stdout);
 			total_size_treated += ((t_instruction*)(actual_inst->next))->inst_size;
 			((t_instruction*)(actual_inst->next))->previous = actual_inst;
 		}
