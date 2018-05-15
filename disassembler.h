@@ -42,6 +42,7 @@ typedef struct	s_instruction {
 	unsigned int			opcode;
 	unsigned int			displacement;
 	unsigned int			immediate[4];
+	unsigned int			relative;
 	void		*next;
 	void		*previous;
 	size_t		inst_size;

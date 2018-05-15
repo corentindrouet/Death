@@ -160,7 +160,9 @@ t_instruction	*create_instruction(void *mem) {
 	i = 0;
 	need_modrm = 0;
 	while (op_reference->operand[i]) {
-		if (!(op_reference->operand[i] & 0x2) && !(op_reference->operand[i] & 0x80))
+		if ((!(op_reference->operand[i] & 0x2) && !(op_reference->operand[i] & 0x80)
+				&& !(op_reference->operand[i] & 0x4))
+			|| op_reference->opcode_extension_inst)
 			need_modrm++;
 		i++;
 	}
@@ -242,6 +244,20 @@ t_instruction	*create_instruction(void *mem) {
 				mem++;
 				new_instruction->inst_size++;
 			}
+		} else if ((op_reference->operand[i] & 0x4) && !(op_reference->operand[i] & 128)) {
+			if (new_instruction->resize == 0 && op_reference->operand[i] & 0x10) {
+				new_instruction->relative = *(unsigned int*)mem;
+				mem += 4;
+				new_instruction->inst_size += 4;
+			} else if (new_instruction->resize && op_reference->operand[i] & 0x10) {
+				new_instruction->relative = *(unsigned short*)mem;
+				mem += 2;
+				new_instruction->inst_size += 2;
+			} else if (op_reference->operand[i] & 0x8) {
+				new_instruction->relative = *(unsigned char*)mem;
+				mem++;
+				new_instruction->inst_size++;
+			}
 		}
 		i++;
 	}
@@ -297,5 +313,6 @@ void	print_instruction(t_instruction *insts) {
 
 	printf("Displacement: %#x\n", insts->displacement);
 	printf("Immediate: %#x | %#x | %#x | %#x\n", insts->immediate[0], insts->immediate[1], insts->immediate[2], insts->immediate[3]);
+	printf("Relative: %#x\n", insts->relative);
 	printf("Inst size: %lu\n", insts->inst_size);
 }

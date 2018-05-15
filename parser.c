@@ -148,7 +148,10 @@ int main(int argc, char **argv) {
 						tmp.opcode_extension_reg = ft_atoi_base(&(tr_start[tr_table[2].rm_so]), 16, tr_table[2].rm_eo - tr_table[2].rm_so);
 						break ;
 					case 4:
-						tmp.opcode_extension_inst = ft_atoi_base(&(tr_start[tr_table[2].rm_so]), 16, tr_table[2].rm_eo - tr_table[2].rm_so);
+						if ((tr_table[2].rm_eo - tr_table[2].rm_so) > 0) {
+							tmp.opcode_extension_inst = ft_atoi_base(&(tr_start[tr_table[2].rm_so]), 16, tr_table[2].rm_eo - tr_table[2].rm_so);
+							tmp.opcode_extension_inst += 8;
+						}
 						break ;
 					case 10:
 						memcpy(tmp.mnemonic, &(tr_start[tr_table[2].rm_so]), tr_table[2].rm_eo - tr_table[2].rm_so);
@@ -158,6 +161,14 @@ int main(int argc, char **argv) {
 							bzero(buff, 50);
 							memcpy(buff, &(tr_start[tr_table[2].rm_so]), tr_table[2].rm_eo - tr_table[2].rm_so);
 							tmp.operand[td_index - 11] = 1;
+							if (strcasestr(buff, "rel")) {
+								tmp.operand[td_index - 11] += 4;
+								tmp.operand[td_index - 11] += (strcasestr(buff, "rel8")) ? 8 : 0;
+								tmp.operand[td_index - 11] += (strcasestr(buff, "rel32")) ? 16 : 0;
+								tmp.operand[td_index - 11] += (strcasestr(buff, "rel16/32")) ? 16 : 0;
+								tmp.operand[td_index - 11] += (strcasestr(buff, "rel8/16/32")) ? 16 : 0;
+								break ;
+							}
 							tmp.operand[td_index - 11] += (strcasestr(buff, "imm")) ? 2 : 0;
 							tmp.operand[td_index - 11] += (strcasestr(buff, "m8")) ? 4 : 0;
 							if (tmp.operand[td_index - 11] & 0x2) {
