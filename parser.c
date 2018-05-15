@@ -183,6 +183,8 @@ int main(int argc, char **argv) {
 							} else if (!strcmp(buff, "m")) {
 								tmp.operand[td_index - 11] += 2;
 								tmp.operand[td_index - 11] += 16;
+							} else if (strcasestr(buff, "s")) {
+								tmp.operand[td_index - 11] = 0;
 							}
 						}
 						break ;

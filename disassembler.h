@@ -33,6 +33,7 @@ typedef struct	s_sib {
 
 typedef struct	s_instruction {
 	U_CHAR		*instruction;
+	unsigned int	inst_offset;
 	U_CHAR		grp_prefix[4];
 	int			nb_grp_prefix;
 	t_rex_prefix	*rex_prefix;

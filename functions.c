@@ -69,8 +69,8 @@ void	find_functions(t_instruction *insts_lst) {
 	}
 	fct_tmp = fct;
 	while (fct_tmp) {
-		printf("Function start opcode %x\n", fct_tmp->start->opcode);
-		printf("Function end opcode %x\n\n", fct_tmp->end->opcode);
+		printf("Function start opcode %#x | at offset : %#x\n", fct_tmp->start->opcode, fct_tmp->start->inst_offset);
+		printf("Function end opcode %#x | at offset : %#x\n\n", fct_tmp->end->opcode, fct_tmp->end->inst_offset);
 		fct_tmp = fct_tmp->next;
 	}
 }
