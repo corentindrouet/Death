@@ -100,6 +100,7 @@ t_instruction	*create_instruction(void *mem) {
 	 * grp4:
 	 * 	0x67 Address size override
 	 */
+	 write(1, "1", 1);
 	while (grp_prefix_index < 4 && verif_prefix_values(*(unsigned char*)mem)) {
 		if (*(unsigned char*)mem == 0x66)
 			new_instruction->resize = 1;
@@ -116,6 +117,7 @@ t_instruction	*create_instruction(void *mem) {
 	 * |0100|w|r|x|b|
 	 * +----+-+-+-+-+
 	 */
+	 write(1, "2", 1);
 	if (!((*(unsigned char*)mem >> 4) ^ 0x4)) {
 		new_instruction->rex_prefix = malloc(sizeof(t_rex_prefix));
 		if (!new_instruction->rex_prefix) {
@@ -136,6 +138,7 @@ t_instruction	*create_instruction(void *mem) {
 	 */
 //	printf("%#hhx | %#hhx\n", *(unsigned char*)mem, *(unsigned char*)(mem + 1));
 //	fflush(stdout);
+	 write(1, "3", 1);
 	if (*(unsigned char*)mem == 0x0f) {
 		new_instruction->opcode = *(unsigned short*)mem;
 		new_instruction->inst_size += 2;
@@ -157,6 +160,7 @@ t_instruction	*create_instruction(void *mem) {
 //		return (new_instruction);
 //	}
 
+	 write(1, "4", 1);
 	i = 0;
 	need_modrm = 0;
 	while (op_reference->operand[i]) {
@@ -176,6 +180,7 @@ t_instruction	*create_instruction(void *mem) {
 	 * Reg is for the register use in the instruction
 	 * r/m can be register or memory.
 	 */
+	 write(1, "5", 1);
 	if (!(op_reference->opcode_extension_reg) && need_modrm) {
 		new_instruction->ModRM = malloc(sizeof(t_mod_rm));
 		if (!new_instruction->ModRM) {
@@ -196,6 +201,7 @@ t_instruction	*create_instruction(void *mem) {
 	 * 	Mov is direct (not 0x11)
 	 * 	rm field is equal 0x100
 	 */
+	 write(1, "6", 1);
 	if (new_instruction->ModRM && new_instruction->ModRM->direct != 0x3 && new_instruction->ModRM->rm == 0x4) {
 		new_instruction->SIB = malloc(sizeof(t_sib));
 		if (!new_instruction->SIB) {
@@ -210,24 +216,26 @@ t_instruction	*create_instruction(void *mem) {
 		new_instruction->SIB->index = (*(unsigned char*)mem & 0x38) >> 3;
 		new_instruction->SIB->base = (*(unsigned char*)mem & 0x7);
 		mem++;
-
-		/*
-		 * Displacement is for instruction like: mov rdi, [rax + 0x1234]
-		 * 0x1234 is here the displacement, but it can be only on 1/4 bytes, depending of
-		 * of the Mod value:
-		 *  Mod == 00 -> not displacement
-		 *  Mod == 01 -> displacement of 1 byte
-		 *  Mod == 10 -> displacement of 4 bytes
-		 */
-		new_instruction->displacement = 0;
-		if (new_instruction->ModRM->direct != 0
-				|| (new_instruction->SIB->index == 0x4 && new_instruction->SIB->base == 0x5)) {
-			new_instruction->displacement = (new_instruction->ModRM->direct == 1) ? *(unsigned char*)mem : *(unsigned int*)mem;
-			mem += (new_instruction->ModRM->direct == 1) ? 1 : 4;
-			new_instruction->inst_size += (new_instruction->ModRM->direct == 1) ? 1 : 4;
-		}
 	}
 
+	/*
+	 * Displacement is for instruction like: mov rdi, [rax + 0x1234]
+	 * 0x1234 is here the displacement, but it can be only on 1/4 bytes, depending of
+	 * of the Mod value:
+	 *  Mod == 00 -> not displacement
+	 *  Mod == 01 -> displacement of 1 byte
+	 *  Mod == 10 -> displacement of 4 bytes
+	 */
+	 write(1, "7", 1);
+	new_instruction->displacement = 0;
+	if ((new_instruction->ModRM && new_instruction->ModRM->direct != 0 && new_instruction->ModRM->direct != 0x3 && (new_instruction->ModRM->rm == 0x4 || new_instruction->ModRM->rm == 0x5))
+			|| (new_instruction->SIB && new_instruction->SIB->index == 0x4 && new_instruction->SIB->base == 0x5)) {
+		new_instruction->displacement = (new_instruction->ModRM->direct == 1) ? *(unsigned char*)mem : *(unsigned int*)mem;
+		mem += (new_instruction->ModRM->direct == 1) ? 1 : 4;
+		new_instruction->inst_size += (new_instruction->ModRM->direct == 1) ? 1 : 4;
+	}
+
+	 write(1, "8", 1);
 	i = 0;
 	while (op_reference->operand[i]) {
 		if (op_reference->operand[i] & 0x2) {
