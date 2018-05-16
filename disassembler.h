@@ -65,6 +65,40 @@ typedef struct	s_opcode {
 	U_CHAR	operand[4];
 }				t_opcode;
 
+/*
+	in order
+
+	Prefix:
+		prefix are simple value on 1 byte
+	Opcode:
+		code of the instruction. 1 byte
+	Opcode register extension:
+		This field specified if opcode have a marge of register.
+		some opcode have a base opcode+register value, like: push register
+		push is opcode 0x50, and register code can't exceed 0x7.
+		so push will be encoded from 0x50 to 0x57.
+	Opcode instruction extension:
+		This field specified if opcode have an r/m field extension.
+		Some opcode have he same operands, like add/or/.../cmp register, immediate.
+		So they can have the same opcode, with an extension on the modrm byte, to specify
+		the specific instruction called.
+	Operand working:
+		All operands are on 1 byte.
+		all specification are added on this byte by oring
+		0x1  this operand is used, wouhou. if set to 0, this operand is not use.
+		0x2  this operand is an immediate value
+			0x4  this immediate is a 8 bits value
+			0x8  this immediate is a 16 bits value
+			0x10 this immediate is a 32 bits value
+		0x4  this operand is a relative value
+			0x8  this relative value is 8 bits long
+			0x10 this relative value is 16/32 bits long (their is a prefix on the instruction to specify the size)
+			0x20 this is a relative value, encoded on 4 bytes, independently of a resize prefix
+		0x80 this is a specific register
+			this register is here > 0x00111000 coded 3 bits
+
+*/
+
 void	disas_text_section(void *text, size_t size);
 size_t	find_text_section(void *file_mem, void **text_start);
 size_t	file_size(int fd);
