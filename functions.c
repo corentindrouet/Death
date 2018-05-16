@@ -29,11 +29,6 @@ void	delete_function_lst(t_function **lst) {
 	}
 }
 
-int	lel() {
-	write(1, "b", 1);
-	return (1);
-}
-
 void	find_functions(t_instruction *insts_lst) {
 	t_instruction	*tmp;
 	t_function		*fct;
@@ -45,6 +40,7 @@ void	find_functions(t_instruction *insts_lst) {
 	while (tmp) {
 		if (tmp->opcode == 0xc8 
 				|| (tmp->opcode == 0x55 
+					&& tmp->next
 					&& ((t_instruction*)(tmp->next))->opcode == 0x89
 					&& ((t_instruction*)(tmp->next))->ModRM
 					&& ((t_instruction*)(tmp->next))->ModRM->direct == 0x3
@@ -52,9 +48,13 @@ void	find_functions(t_instruction *insts_lst) {
 					&& ((t_instruction*)(tmp->next))->ModRM->rm == 0x5)) {
 			if (!fct) {
 				fct = create_function(tmp, NULL);
+				if (!fct)
+					return ;
 				fct_tmp = fct;
 			} else {
 				fct_tmp->next = create_function(tmp, NULL);
+				if (!fct_tmp->next)
+					return ;
 				fct_tmp = fct_tmp->next;
 			}
 		} else if (tmp->opcode == 0xc2
@@ -69,8 +69,10 @@ void	find_functions(t_instruction *insts_lst) {
 	}
 	fct_tmp = fct;
 	while (fct_tmp) {
-		printf("Function start opcode %#x | at offset : %#x\n", fct_tmp->start->opcode, fct_tmp->start->inst_offset);
-		printf("Function end opcode %#x | at offset : %#x\n\n", fct_tmp->end->opcode, fct_tmp->end->inst_offset);
+		if (fct_tmp->start)
+			printf("Function start opcode %#x | at offset : %#x\n", fct_tmp->start->opcode, fct_tmp->start->inst_offset);
+		if (fct_tmp->end)
+			printf("Function end opcode %#x | at offset : %#x\n\n", fct_tmp->end->opcode, fct_tmp->end->inst_offset);
 		fct_tmp = fct_tmp->next;
 	}
 }

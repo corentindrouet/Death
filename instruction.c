@@ -100,7 +100,6 @@ t_instruction	*create_instruction(void *mem) {
 	 * grp4:
 	 * 	0x67 Address size override
 	 */
-	 write(1, "1", 1);
 	while (grp_prefix_index < 4 && verif_prefix_values(*(unsigned char*)mem)) {
 		if (*(unsigned char*)mem == 0x66)
 			new_instruction->resize = 1;
@@ -117,7 +116,6 @@ t_instruction	*create_instruction(void *mem) {
 	 * |0100|w|r|x|b|
 	 * +----+-+-+-+-+
 	 */
-	 write(1, "2", 1);
 	if (!((*(unsigned char*)mem >> 4) ^ 0x4)) {
 		new_instruction->rex_prefix = malloc(sizeof(t_rex_prefix));
 		if (!new_instruction->rex_prefix) {
@@ -136,14 +134,16 @@ t_instruction	*create_instruction(void *mem) {
 	/*
 	 * Opcode is directly after prefixs, but can be on 1 or 2 bytes, depending of prefix
 	 */
-//	printf("%#hhx | %#hhx\n", *(unsigned char*)mem, *(unsigned char*)(mem + 1));
-//	fflush(stdout);
-	 write(1, "3", 1);
 	if (*(unsigned char*)mem == 0x0f) {
 		new_instruction->opcode = *(unsigned short*)mem;
 		new_instruction->inst_size += 2;
 		op_reference = find_opcode_instruction(*(unsigned char*)(mem + 1), *(unsigned char*)mem, 8, 0);
-//		printf("%p\n", op_reference);
+		if (!op_reference) {
+			free(new_instruction->rex_prefix);
+			free(new_instruction);
+			return (NULL);
+		}
+
 		fflush(stdout);
 		mem += 2;
 	} else {
@@ -152,15 +152,11 @@ t_instruction	*create_instruction(void *mem) {
 		op_reference = find_opcode_instruction(new_instruction->opcode, 0, 8, 0);
 		mem++;
 	}
-//	if ((new_instruction->opcode >= 0x40 && new_instruction->opcode <= 0x5f))
-//		return (new_instruction);
-//	if ((new_instruction->opcode >= 0xb0 && new_instruction->opcode <= 0xbf)) {
-//		new_instruction->immediate = *(int*)mem;
-//		new_instruction->inst_size += 4;
-//		return (new_instruction);
-//	}
 
-	 write(1, "4", 1);
+	/*
+	 *	Some instruction don't need modrm, especially those who have a specific
+	 *	register like: mov register, 0x4242, or push register
+	 */
 	i = 0;
 	need_modrm = 0;
 	while (op_reference->operand[i]) {
@@ -172,7 +168,7 @@ t_instruction	*create_instruction(void *mem) {
 	}
 
 	/*
-	 * Now take the ModRM field. It loog like that:
+	 * Now take the ModRM field. It looks like that:
 	 * +--+--+--+--+--+--+--+--+
 	 * |Mod  |  Reg   |  r/m   |
 	 * +--+--+--+--+--+--+--+--+
@@ -180,7 +176,6 @@ t_instruction	*create_instruction(void *mem) {
 	 * Reg is for the register use in the instruction
 	 * r/m can be register or memory.
 	 */
-	 write(1, "5", 1);
 	if (!(op_reference->opcode_extension_reg) && need_modrm) {
 		new_instruction->ModRM = malloc(sizeof(t_mod_rm));
 		if (!new_instruction->ModRM) {
@@ -200,8 +195,11 @@ t_instruction	*create_instruction(void *mem) {
 	 * Check for the SIB. SIB is optionnal, their is an SIB when:
 	 * 	Mov is direct (not 0x11)
 	 * 	rm field is equal 0x100
+	 *	SIB exemple: mov rax, [rsp + rdi * 2]
+	 *		scale is 2 (note that scale can only be 1/2/4/8)
+	 *		index is rdi
+	 *		base is rsp
 	 */
-	 write(1, "6", 1);
 	if (new_instruction->ModRM && new_instruction->ModRM->direct != 0x3 && new_instruction->ModRM->rm == 0x4) {
 		new_instruction->SIB = malloc(sizeof(t_sib));
 		if (!new_instruction->SIB) {
@@ -226,7 +224,6 @@ t_instruction	*create_instruction(void *mem) {
 	 *  Mod == 01 -> displacement of 1 byte
 	 *  Mod == 10 -> displacement of 4 bytes
 	 */
-	 write(1, "7", 1);
 	new_instruction->displacement = 0;
 	if ((new_instruction->ModRM && new_instruction->ModRM->direct != 0 && new_instruction->ModRM->direct != 0x3 && (new_instruction->ModRM->rm == 0x4 || new_instruction->ModRM->rm == 0x5))
 			|| (new_instruction->SIB && new_instruction->SIB->index == 0x4 && new_instruction->SIB->base == 0x5)) {
@@ -235,33 +232,51 @@ t_instruction	*create_instruction(void *mem) {
 		new_instruction->inst_size += (new_instruction->ModRM->direct == 1) ? 1 : 4;
 	}
 
-	 write(1, "8", 1);
+	/*
+	 *	Here we will check all operand of the instruction, to find if we need to take
+	 *	immediate/relative/displacement
+	 *	Note that immediate value and displacement can cohabit: mov [rbp - 5], 0x1212
+	 */
 	i = 0;
 	while (op_reference->operand[i]) {
+		// First verify if we have an immediate value
 		if (op_reference->operand[i] & 0x2) {
+			// if it's an 32 bits value, we need to check if we have the resize prefix or not.
+			// 32 bits immediate don't have prefix
 			if (new_instruction->resize == 0 && op_reference->operand[i] & 0x10) {
 				new_instruction->immediate[i] = *(unsigned int*)mem;
 				mem += 4;
 				new_instruction->inst_size += 4;
-			} else if (op_reference->operand[i] & 0x8) {
+			}
+			// check for 16 bits value
+			else if (op_reference->operand[i] & 0x8) {
 				new_instruction->immediate[i] = *(unsigned short*)mem;
 				mem += 2;
 				new_instruction->inst_size += 2;
-			} else if (op_reference->operand[i] & 0x4) {
+			}
+			// check for 8 bits value
+			else if (op_reference->operand[i] & 0x4) {
 				new_instruction->immediate[i] = *(unsigned char*)mem;
 				mem++;
 				new_instruction->inst_size++;
 			}
-		} else if ((op_reference->operand[i] & 0x4) && !(op_reference->operand[i] & 128) && !new_instruction->displacement) {
+		}
+		// Verify if we have a relative value. It can be relative values only if no displacement is found
+		else if ((op_reference->operand[i] & 0x4) && !(op_reference->operand[i] & 128) && !new_instruction->displacement) {
+			// if no resize prefix, it's a 32 bits relative value
 			if ((new_instruction->resize == 0 && op_reference->operand[i] & 0x10) || (op_reference->operand[i] & 0x20)) {
 				new_instruction->relative = *(unsigned int*)mem;
 				mem += 4;
 				new_instruction->inst_size += 4;
-			} else if ((new_instruction->resize && op_reference->operand[i] & 0x10)) {
+			}
+			// if resize prefix, it's a 16 bits relative value
+			else if ((new_instruction->resize && op_reference->operand[i] & 0x10)) {
 				new_instruction->relative = *(unsigned short*)mem;
 				mem += 2;
 				new_instruction->inst_size += 2;
-			} else if (op_reference->operand[i] & 0x8) {
+			}
+			// else, it's a 8 bits relative value
+			else if (op_reference->operand[i] & 0x8) {
 				new_instruction->relative = *(unsigned char*)mem;
 				mem++;
 				new_instruction->inst_size++;
