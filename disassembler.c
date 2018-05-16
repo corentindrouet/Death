@@ -75,6 +75,7 @@ void	disas_text_section(void *text, size_t size) {
 		delete_instruction(actual_inst);
 		actual_inst = tmp;
 	}
+	find_opcode_instruction(0, 0, 0, 1);
 	return ;
 }
 

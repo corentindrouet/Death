@@ -26,18 +26,26 @@ t_opcode	*find_opcode_instruction(U_CHAR opcode_to_find, U_CHAR prefix, U_CHAR o
 	opcode_table = mmap_start;
 	while ((size_t)((void*)opcode_table - mmap_start) < fd_size) {
 		if (opcode_inst_ext >= 8) {
-			if (opcode_table->opcode_extension_reg != 1 && opcode_table->opcode == opcode_to_find && opcode_table->prefix == prefix)
+			if (opcode_table->opcode_extension_reg != 1
+				&& opcode_table->opcode == opcode_to_find
+				&& opcode_table->prefix == prefix)
 				return (opcode_table);
 			else if (opcode_table->opcode_extension_reg == 1
-					&& opcode_table->opcode <= opcode_to_find && (opcode_table->opcode + 8) > opcode_to_find && opcode_table->prefix == prefix)
+					&& opcode_table->opcode <= opcode_to_find
+					&& (opcode_table->opcode + 8) > opcode_to_find
+					&& opcode_table->prefix == prefix)
 				return (opcode_table);
 		} else {
-			if (opcode_table->opcode_extension_reg != 1 && opcode_table->opcode == opcode_to_find
-					&& opcode_table->opcode_extension_inst == opcode_inst_ext && opcode_table->prefix == prefix)
+			if (opcode_table->opcode_extension_reg != 1
+				&& opcode_table->opcode == opcode_to_find
+				&& opcode_table->opcode_extension_inst == opcode_inst_ext
+				&& opcode_table->prefix == prefix)
 				return (opcode_table);
 			else if (opcode_table->opcode_extension_reg == 1
-					&& opcode_table->opcode <= opcode_to_find && (opcode_table->opcode + 8) > opcode_to_find
-					&& opcode_table->opcode_extension_inst == opcode_inst_ext && opcode_table->prefix == prefix)
+					&& opcode_table->opcode <= opcode_to_find
+					&& (opcode_table->opcode + 8) > opcode_to_find
+					&& opcode_table->opcode_extension_inst == opcode_inst_ext
+					&& opcode_table->prefix == prefix)
 				return (opcode_table);
 		}
 		opcode_table++;
