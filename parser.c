@@ -181,8 +181,8 @@ int main(int argc, char **argv) {
 								register_code = register_code << 3;
 								tmp.operand[td_index - 11] += register_code;
 							} else if (!strcmp(buff, "m")) {
-								tmp.operand[td_index - 11] += 2;
-								tmp.operand[td_index - 11] += 16;
+								tmp.operand[td_index - 11] += 4;
+								tmp.operand[td_index - 11] += 32;
 							} else if (strcasestr(buff, "s")) {
 								tmp.operand[td_index - 11] = 0;
 							}

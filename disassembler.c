@@ -59,10 +59,10 @@ void	disas_text_section(void *text, size_t size) {
 			actual_inst->next = create_instruction(text + total_size_treated);
 			if (!actual_inst->next)
 				return ;
-			print_instruction(actual_inst);
+			((t_instruction*)(actual_inst->next))->inst_offset = total_size_treated;
+			print_instruction(actual_inst->next);
 			printf("\n");
 			fflush(stdout);
-			((t_instruction*)(actual_inst->next))->inst_offset = total_size_treated;
 			total_size_treated += ((t_instruction*)(actual_inst->next))->inst_size;
 			((t_instruction*)(actual_inst->next))->previous = actual_inst;
 		}
@@ -82,53 +82,6 @@ void	disas_text_section(void *text, size_t size) {
 	}
 	return ;
 }
-
-//void	sort_by_values(void **sym_table) {
-//
-//}
-//
-//void	disas_by_symbols(void *file_mem, void *text_start, size_t text_size) {
-//	Elf64_Ehdr	*header;
-//	Elf64_Shdr	*sec;
-//	Elf64_Shdr	*sec_sym;
-//	Elf64_Sym	*sym;
-//	char		*file_content;
-//	char		*strtab;
-//	unsigned int	i;
-//	void		**sym_table_ordered;
-//
-//	header = file_mem;
-//	sec = file_mem + header->e_shoff;
-//
-//	file_content = file_mem + sec[header->e_shstrndx].sh_offset;
-//
-//	(void)text_start;
-//	(void)text_size;
-//	i = 0;
-//	while (i < header->e_shnum) {
-//		if (sec->sh_type == SHT_SYMTAB) {
-//			sec_sym = sec;
-//			sym = file_mem + sec->sh_offset;
-//		} else if (sec->sh_type == SHT_STRTAB && !strcmp(file_content + sec->sh_name, ".strtab")) {
-//			strtab = file_mem + sec->sh_offset;
-//		}
-//		sec++;
-//		i++;
-//	}
-//
-//	sec = file_mem + header->e_shoff
-//	sym_table_ordered = malloc((sec_sym->sh_size / sizeof(Elf64_Sym)) * 8 + 8);
-//	i = 0;
-//	while (i < sec_sym->sh_size) {
-//		if (!strcmp(file_content + sec[(sym->st_shndx < 0x8888) ? sym->st_shndx : 0].sh_name, ".text") && sym->st_value >= sec[sym->st_shndx].sh_addr && sym->st_value < (sec[sym->st_shndx].sh_addr + sec[sym->st_shndx].sh_size)) {
-////			printf("name %18s |value %#lx |info %#hhx |other %#hhx |size %#lx\n", strtab + sym->st_name, sym->st_value, sym->st_info, sym->st_other, sym->st_size);
-//			
-//		}
-//		i += sym->st_size + sizeof(Elf64_Sym);
-//		sym = (void*)sym + sym->st_size + sizeof(Elf64_Sym);
-//	}
-//
-//}
 
 int 	main(int argc, char **argv) {
 	int		fd;
@@ -155,7 +108,6 @@ int 	main(int argc, char **argv) {
 	}
 	text_size = find_text_section(file_mem, &text_start);
 	disas_text_section(text_start, text_size);
-//	disas_by_symbols(file_mem, text_start, text_size);
 	munmap(file_mem, fd_size);
 	close(fd);
 	return (0);

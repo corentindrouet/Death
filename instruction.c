@@ -134,13 +134,13 @@ t_instruction	*create_instruction(void *mem) {
 	/*
 	 * Opcode is directly after prefixs, but can be on 1 or 2 bytes, depending of prefix
 	 */
-	printf("%#hhx | %#hhx\n", *(unsigned char*)mem, *(unsigned char*)(mem + 1));
-	fflush(stdout);
+//	printf("%#hhx | %#hhx\n", *(unsigned char*)mem, *(unsigned char*)(mem + 1));
+//	fflush(stdout);
 	if (*(unsigned char*)mem == 0x0f) {
 		new_instruction->opcode = *(unsigned short*)mem;
 		new_instruction->inst_size += 2;
 		op_reference = find_opcode_instruction(*(unsigned char*)(mem + 1), *(unsigned char*)mem, 8, 0);
-		printf("%p\n", op_reference);
+//		printf("%p\n", op_reference);
 		fflush(stdout);
 		mem += 2;
 	} else {
@@ -244,12 +244,12 @@ t_instruction	*create_instruction(void *mem) {
 				mem++;
 				new_instruction->inst_size++;
 			}
-		} else if ((op_reference->operand[i] & 0x4) && !(op_reference->operand[i] & 128)) {
-			if (new_instruction->resize == 0 && op_reference->operand[i] & 0x10) {
+		} else if ((op_reference->operand[i] & 0x4) && !(op_reference->operand[i] & 128) && !new_instruction->displacement) {
+			if ((new_instruction->resize == 0 && op_reference->operand[i] & 0x10) || (op_reference->operand[i] & 0x20)) {
 				new_instruction->relative = *(unsigned int*)mem;
 				mem += 4;
 				new_instruction->inst_size += 4;
-			} else if (new_instruction->resize && op_reference->operand[i] & 0x10) {
+			} else if ((new_instruction->resize && op_reference->operand[i] & 0x10)) {
 				new_instruction->relative = *(unsigned short*)mem;
 				mem += 2;
 				new_instruction->inst_size += 2;
@@ -280,6 +280,7 @@ void	print_instruction(t_instruction *insts) {
 		"R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15",
 	};
 
+	printf("offset: %#x\n", insts->inst_offset);
 	printf("Grp prefix: %d\n", insts->nb_grp_prefix);
 	for (i = 0; i < insts->nb_grp_prefix; i++)
 		printf("  prefix %d: %#hhx\n", i, insts->grp_prefix[i]);
