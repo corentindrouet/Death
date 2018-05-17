@@ -43,7 +43,7 @@ typedef struct	s_instruction {
 	unsigned int			opcode;
 	unsigned int			displacement;
 	unsigned int			immediate[4];
-	unsigned int			relative;
+	int			relative;
 	void		*next;
 	void		*previous;
 	size_t		inst_size;
@@ -55,6 +55,14 @@ typedef struct	s_function {
 	void			*next;
 	void			*previous;
 }				t_function;
+
+typedef struct	s_relative_addr {
+	t_instruction	*inst;
+	t_instruction	*inst_related;
+	t_function		*fct_related;
+	void			*next;
+	void			*previous;
+}				t_relative_addr;
 
 typedef struct	s_opcode {
 	U_CHAR	prefix;
@@ -108,7 +116,13 @@ void	delete_instruction(t_instruction *insts);
 void	print_instruction(t_instruction *insts);
 t_function	*create_function(t_instruction *start, t_instruction *end);
 void	delete_function_lst(t_function **lst);
-void	find_functions(t_instruction *insts_lst);
+t_function	*find_functions(t_instruction *insts_lst);
 t_opcode	*find_opcode_instruction(U_CHAR opcode_to_find, U_CHAR prefix, U_CHAR opcode_inst_ext, char destroy_table);
+t_relative_addr	*create_relative_ref(t_instruction *inst, t_instruction *inst_related, t_function *fct, void *previous);
+void		delete_all_rel_ref(t_relative_addr *lst);
+void		print_all_ref(t_relative_addr *lst);
+t_function	*find_function_related(t_function *fct_lst, unsigned int offset);
+t_instruction	*find_instruction_related(t_instruction *inst_lst, unsigned int offset);
+void	find_relative_addr(t_instruction *all_inst_lst, t_function *all_fct_lst);
 
 #endif

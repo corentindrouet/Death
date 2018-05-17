@@ -29,7 +29,7 @@ void	delete_function_lst(t_function **lst) {
 	}
 }
 
-void	find_functions(t_instruction *insts_lst) {
+t_function	*find_functions(t_instruction *insts_lst) {
 	t_instruction	*tmp;
 	t_function		*fct;
 	t_function		*fct_tmp;
@@ -49,12 +49,12 @@ void	find_functions(t_instruction *insts_lst) {
 			if (!fct) {
 				fct = create_function(tmp, NULL);
 				if (!fct)
-					return ;
+					return (NULL);
 				fct_tmp = fct;
 			} else {
 				fct_tmp->next = create_function(tmp, NULL);
 				if (!fct_tmp->next)
-					return ;
+					return (NULL);
 				fct_tmp = fct_tmp->next;
 			}
 		} else if (tmp->opcode == 0xc2
@@ -75,4 +75,5 @@ void	find_functions(t_instruction *insts_lst) {
 			printf("Function end opcode %#x | at offset : %#x\n\n", fct_tmp->end->opcode, fct_tmp->end->inst_offset);
 		fct_tmp = fct_tmp->next;
 	}
+	return (fct);
 }

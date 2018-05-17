@@ -38,6 +38,7 @@ void	disas_text_section(void *text, size_t size) {
 	t_instruction	*insts_lst;
 	t_instruction	*actual_inst;
 	t_instruction	*tmp;
+	t_function		*fcts;
 	size_t			total_size_treated;
 
 	insts_lst = NULL;
@@ -68,7 +69,8 @@ void	disas_text_section(void *text, size_t size) {
 		actual_inst = actual_inst->next;
 	}
 	fflush(stdout);
-//	find_functions(insts_lst);
+	fcts = find_functions(insts_lst);
+	find_relative_addr(insts_lst, fcts);
 	actual_inst = insts_lst;
 	while (actual_inst) {
 		tmp = actual_inst->next;

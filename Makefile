@@ -3,7 +3,8 @@ CC			=	gcc
 CFLAGS		=	-Wall -Wextra -Werror
 SRC			=	disassembler.c \
 				instruction.c \
-				functions.c
+				functions.c \
+				find_relative_addr.c
 OBJ			=	$(SRC:.c=.o)
 PARSOR_SRC	=	ft_atoi_base.c \
 				parser.c
