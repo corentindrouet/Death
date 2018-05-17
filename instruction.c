@@ -86,6 +86,7 @@ t_instruction	*create_instruction(void *mem) {
 	new_instruction->SIB = NULL;
 	new_instruction->rex_prefix = NULL;
 	new_instruction->resize = 0;
+	new_instruction->relative_offset = 0;
 	grp_prefix_index = 0;
 
 	/*
@@ -273,18 +274,21 @@ t_instruction	*create_instruction(void *mem) {
 		else if ((op_reference->operand[i] & 0x4) && !(op_reference->operand[i] & 128) && !new_instruction->displacement) {
 			// if no resize prefix, it's a 32 bits relative value
 			if ((new_instruction->resize == 0 && op_reference->operand[i] & 0x10) || (op_reference->operand[i] & 0x20)) {
+				new_instruction->relative_offset = new_instruction->inst_size;
 				new_instruction->relative = *(unsigned int*)mem;
 				mem += 4;
 				new_instruction->inst_size += 4;
 			}
 			// if resize prefix, it's a 16 bits relative value
 			else if ((new_instruction->resize && op_reference->operand[i] & 0x10)) {
+				new_instruction->relative_offset = new_instruction->inst_size;
 				new_instruction->relative = *(unsigned short*)mem;
 				mem += 2;
 				new_instruction->inst_size += 2;
 			}
 			// else, it's a 8 bits relative value
 			else if (op_reference->operand[i] & 0x8) {
+				new_instruction->relative_offset = new_instruction->inst_size;
 				new_instruction->relative = *(unsigned char*)mem;
 				mem++;
 				new_instruction->inst_size++;

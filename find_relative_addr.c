@@ -29,10 +29,10 @@ void		print_all_ref(t_relative_addr *lst) {
 
 	tmp = lst;
 	while (tmp) {
-		printf("inst relative: %d offset: %d |inst related: %#x |fct related: %#x\n",
-			tmp->inst->relative, tmp->inst->inst_offset,
-			(tmp->inst_related) ? tmp->inst_related->inst_offset : 0,
-			(tmp->fct_related) ? tmp->fct_related->start->inst_offset : 0);
+//		printf("inst relative: %d offset: %d |inst related: %#x |fct related: %#x\n",
+//			tmp->inst->relative, tmp->inst->inst_offset,
+//			(tmp->inst_related) ? tmp->inst_related->inst_offset : 0,
+//			(tmp->fct_related) ? tmp->fct_related->start->inst_offset : 0);
 		tmp = tmp->next;
 	}
 }
@@ -61,15 +61,13 @@ t_instruction	*find_instruction_related(t_instruction *inst_lst, unsigned int of
 	return (NULL);
 }
 
-void	find_relative_addr(t_instruction *all_inst_lst, t_function *all_fct_lst) {
+t_relative_addr	*find_relative_addr(t_instruction *all_inst_lst, t_function *all_fct_lst) {
 	t_instruction	*actual_inst;
-//	t_function		*actual_fct;
 	t_relative_addr	*rel_ref;
 	t_relative_addr	*tmp_rel_ref;
 	unsigned int	offset;
 
 	actual_inst = all_inst_lst;
-//	actual_fct = all_fct_lst;
 	rel_ref = NULL;
 	tmp_rel_ref = rel_ref;
 	while (actual_inst) {
@@ -90,5 +88,6 @@ void	find_relative_addr(t_instruction *all_inst_lst, t_function *all_fct_lst) {
 		actual_inst = actual_inst->next;
 	}
 	print_all_ref(rel_ref);
-	delete_all_rel_ref(rel_ref);
+//	delete_all_rel_ref(rel_ref);
+	return (rel_ref);
 }

@@ -9,8 +9,14 @@ t_function	*create_function(t_instruction *start, t_instruction *end) {
 		return (NULL);
 	fct->start = start;
 	fct->end = end;
+	if (fct->start && fct->end) {
+		fct->fct_size = fct->end->inst_offset - fct->start->inst_offset + fct->end->inst_size;
+	} else {
+		fct->fct_size = fct->start->inst_size;
+	}
 	fct->next = NULL;
 	fct->previous = NULL;
+	fct->fct_copy = NULL;
 	return (fct);
 }
 
@@ -63,6 +69,9 @@ t_function	*find_functions(t_instruction *insts_lst) {
 				|| tmp->opcode == 0xcb) {
 			if (fct_tmp) {
 				fct_tmp->end = tmp;
+				if (fct_tmp->start) {
+					fct_tmp->fct_size = fct_tmp->end->inst_offset - fct_tmp->start->inst_offset + fct_tmp->end->inst_size;
+				}
 			}
 		}
 		tmp = tmp->next;
@@ -70,9 +79,9 @@ t_function	*find_functions(t_instruction *insts_lst) {
 	fct_tmp = fct;
 	while (fct_tmp) {
 		if (fct_tmp->start)
-			printf("Function start opcode %#x | at offset : %#x\n", fct_tmp->start->opcode, fct_tmp->start->inst_offset);
+			printf("Function start opcode %#x |at offset: %#x |size: %lu\n", fct_tmp->start->opcode, fct_tmp->start->inst_offset, fct_tmp->fct_size);
 		if (fct_tmp->end)
-			printf("Function end opcode %#x | at offset : %#x\n\n", fct_tmp->end->opcode, fct_tmp->end->inst_offset);
+			printf("Function end opcode %#x |at offset: %#x |size: %lu\n\n", fct_tmp->end->opcode, fct_tmp->end->inst_offset, fct_tmp->fct_size);
 		fct_tmp = fct_tmp->next;
 	}
 	return (fct);

@@ -34,6 +34,7 @@ typedef struct	s_sib {
 typedef struct	s_instruction {
 	U_CHAR		*instruction;
 	unsigned int	inst_offset;
+	unsigned int	new_offset;
 	U_CHAR		grp_prefix[4];
 	int			nb_grp_prefix;
 	t_rex_prefix	*rex_prefix;
@@ -44,6 +45,7 @@ typedef struct	s_instruction {
 	unsigned int			displacement;
 	unsigned int			immediate[4];
 	int			relative;
+	U_CHAR		relative_offset;
 	void		*next;
 	void		*previous;
 	size_t		inst_size;
@@ -52,6 +54,9 @@ typedef struct	s_instruction {
 typedef struct	s_function {
 	t_instruction	*start;
 	t_instruction	*end;
+	size_t			fct_size;
+	void			*fct_copy;
+	unsigned int	new_offset;
 	void			*next;
 	void			*previous;
 }				t_function;
@@ -123,6 +128,7 @@ void		delete_all_rel_ref(t_relative_addr *lst);
 void		print_all_ref(t_relative_addr *lst);
 t_function	*find_function_related(t_function *fct_lst, unsigned int offset);
 t_instruction	*find_instruction_related(t_instruction *inst_lst, unsigned int offset);
-void	find_relative_addr(t_instruction *all_inst_lst, t_function *all_fct_lst);
+t_relative_addr	*find_relative_addr(t_instruction *all_inst_lst, t_function *all_fct_lst);
+void	exchange_functions(t_relative_addr *rel_lst, t_function *fct_lst, t_instruction *inst_lst, void *text_sect);
 
 #endif
