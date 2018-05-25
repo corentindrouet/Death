@@ -46,9 +46,10 @@ typedef struct	s_instruction {
 	unsigned int			immediate[4];
 	int			relative;
 	U_CHAR		relative_offset;
+	size_t		inst_size;
+	struct s_function	*fct;
 	void		*next;
 	void		*previous;
-	size_t		inst_size;
 }				t_instruction;
 
 typedef struct	s_function {
@@ -59,6 +60,7 @@ typedef struct	s_function {
 	unsigned int	new_offset;
 	void			*next;
 	void			*previous;
+	char			fct_or_code;
 }				t_function;
 
 typedef struct	s_relative_addr {
@@ -112,7 +114,7 @@ typedef struct	s_opcode {
 
 */
 
-void	disas_text_section(void *text, size_t size);
+void	disas_text_section(void* file_mem, void *text, size_t size);
 size_t	find_text_section(void *file_mem, void **text_start);
 size_t	file_size(int fd);
 t_instruction	*create_instruction(void *mem);

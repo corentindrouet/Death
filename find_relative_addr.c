@@ -10,16 +10,20 @@ t_relative_addr	*create_relative_ref(t_instruction *inst, t_instruction *inst_re
 	rel_ref->inst_related = inst_related;
 	rel_ref->fct_related = fct;
 	rel_ref->previous = previous;
+	rel_ref->next = NULL;
 	return (rel_ref);
 }
 
 void		delete_all_rel_ref(t_relative_addr *lst) {
 	t_relative_addr	*tmp;
 
+	if (!lst)
+		return ;
 	tmp = lst;
 	while (tmp->next) {
 		tmp = tmp->next;
-		free(tmp->previous);
+		if (tmp->previous)
+			free(tmp->previous);
 	}
 	free(tmp);
 }
@@ -29,10 +33,10 @@ void		print_all_ref(t_relative_addr *lst) {
 
 	tmp = lst;
 	while (tmp) {
-//		printf("inst relative: %d offset: %d |inst related: %#x |fct related: %#x\n",
-//			tmp->inst->relative, tmp->inst->inst_offset,
-//			(tmp->inst_related) ? tmp->inst_related->inst_offset : 0,
-//			(tmp->fct_related) ? tmp->fct_related->start->inst_offset : 0);
+		printf("inst relative: %#x offset: %#x |inst related: %#x |fct related: %#x\n",
+			tmp->inst->relative, tmp->inst->inst_offset,
+			(tmp->inst_related) ? tmp->inst_related->inst_offset : 0,
+			(tmp->fct_related) ? tmp->fct_related->start->inst_offset : 0);
 		tmp = tmp->next;
 	}
 }

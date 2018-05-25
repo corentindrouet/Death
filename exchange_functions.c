@@ -5,8 +5,10 @@ void	exchange_functions(t_relative_addr *rel_lst, t_function *fct_lst, t_instruc
 	t_function	*fct_tmp;
 	t_relative_addr *rel_tmp;
 	int			actual_offset;
-	int			inst_guard;
-	int			inst_rel_guard;
+//	int			inst_guard;
+//	int			inst_rel_guard;
+	int			fct_offset_diff;
+	t_instruction	*tmp_inst;
 //	t_function	*first_fct;
 //	t_function	*sec_fct;
 //	t_relative_addr	*tmp;
@@ -27,6 +29,12 @@ void	exchange_functions(t_relative_addr *rel_lst, t_function *fct_lst, t_instruc
 	while (fct_tmp) {
 		if (fct_tmp->fct_copy) {
 			fct_tmp->new_offset = actual_offset;
+			fct_offset_diff = fct_tmp->new_offset - fct_tmp->start->inst_offset;
+			tmp_inst = fct_tmp->start;
+			while (tmp_inst && tmp_inst->inst_offset <= fct_tmp->end->inst_offset) {
+				tmp_inst->new_offset += fct_offset_diff;
+				tmp_inst = tmp_inst->next;
+			}
 			memcpy(text_sect + actual_offset, fct_tmp->fct_copy, fct_tmp->fct_size);
 			actual_offset += fct_tmp->fct_size;
 		}
@@ -34,29 +42,34 @@ void	exchange_functions(t_relative_addr *rel_lst, t_function *fct_lst, t_instruc
 	}
 	if (fct_lst->fct_copy) {
 		fct_lst->new_offset = actual_offset;
+		fct_offset_diff = fct_lst->new_offset - fct_lst->start->inst_offset;
+		tmp_inst = fct_lst->start;
+		while (tmp_inst && tmp_inst->inst_offset <= fct_lst->end->inst_offset) {
+			tmp_inst->new_offset += fct_offset_diff;
+			tmp_inst = tmp_inst->next;
+		}
 		memcpy(text_sect + actual_offset, fct_lst->fct_copy, fct_lst->fct_size);
 		actual_offset += fct_lst->fct_size;
 	}
-	rel_tmp = rel_lst;
-	while (rel_tmp) {
-		fct_tmp = fct_lst;
-		inst_guard = 0;
-		inst_rel_guard = 0;
-		while (fct_tmp) {
-			if (!inst_guard && rel_tmp->inst->inst_offset >= fct_tmp->start->inst_offset
-				&& rel_tmp->inst->inst_offset < (fct_tmp->start->inst_offset + fct_tmp->fct_size)) {
-				rel_tmp->inst->new_offset += (fct_tmp->new_offset - fct_tmp->start->inst_offset);
-				inst_guard++;
-			}
-			if (!inst_rel_guard && rel_tmp->inst_related->inst_offset >= fct_tmp->start->inst_offset
-				&& rel_tmp->inst_related->inst_offset < (fct_tmp->start->inst_offset + fct_tmp->fct_size)) {
-				rel_tmp->inst_related->new_offset += (int)((int)(fct_tmp->new_offset) - (int)(fct_tmp->start->inst_offset));
-				inst_rel_guard++;
-			}
-			fct_tmp = fct_tmp->next;
-		}
-		rel_tmp = rel_tmp->next;
-	}
+//	rel_tmp = rel_lst;
+//	while (rel_tmp) {
+//		fct_tmp = fct_lst;
+//		inst_rel_guard = 0;
+//		while (fct_tmp) {
+////			if (!inst_guard && rel_tmp->inst->inst_offset >= fct_tmp->start->inst_offset
+////				&& rel_tmp->inst->inst_offset < (fct_tmp->start->inst_offset + fct_tmp->fct_size)) {
+////				rel_tmp->inst->new_offset += (fct_tmp->new_offset - fct_tmp->start->inst_offset);
+////				inst_guard++;
+////			}
+//			if (!inst_rel_guard && rel_tmp->inst_related->inst_offset >= fct_tmp->start->inst_offset
+//				&& rel_tmp->inst_related->inst_offset < (fct_tmp->start->inst_offset + fct_tmp->fct_size)) {
+//				rel_tmp->inst_related->new_offset += (int)((int)(fct_tmp->new_offset) - (int)(fct_tmp->start->inst_offset));
+//				inst_rel_guard++;
+//			}
+//			fct_tmp = fct_tmp->next;
+//		}
+//		rel_tmp = rel_tmp->next;
+//	}
 
 	rel_tmp = rel_lst;
 	while (rel_tmp) {

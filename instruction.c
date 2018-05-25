@@ -87,6 +87,7 @@ t_instruction	*create_instruction(void *mem) {
 	new_instruction->rex_prefix = NULL;
 	new_instruction->resize = 0;
 	new_instruction->relative_offset = 0;
+	new_instruction->fct = NULL;
 	grp_prefix_index = 0;
 
 	/*

@@ -34,13 +34,14 @@ size_t	find_text_section(void *file_mem, void **text_start) {
 	return (-1);
 }
 
-void	disas_text_section(void *text, size_t size) {
+void	disas_text_section(void *file_mem, void *text, size_t size) {
 	t_instruction	*insts_lst;
 	t_instruction	*actual_inst;
 	t_instruction	*tmp;
 	t_function		*fcts;
 	t_relative_addr	*rel_ref;
 	size_t			total_size_treated;
+	unsigned long	o_entry;
 
 	insts_lst = NULL;
 	total_size_treated = 0;
@@ -75,13 +76,24 @@ void	disas_text_section(void *text, size_t size) {
 	fcts = find_functions(insts_lst);
 	rel_ref = find_relative_addr(insts_lst, fcts);
 	exchange_functions(rel_ref, fcts, insts_lst, text);
+	o_entry = (*(unsigned long*)(file_mem + 24)) - 0x400080;
+
+	actual_inst = insts_lst;
+	while (actual_inst) {
+		if (actual_inst->inst_offset == o_entry) {
+			*(unsigned long*)(file_mem + 24) = actual_inst->new_offset + 0x400080;
+			break ;
+		}
+		actual_inst = actual_inst->next;
+	}
+
+	delete_all_rel_ref(rel_ref);
 	actual_inst = insts_lst;
 	while (actual_inst) {
 		tmp = actual_inst->next;
 		delete_instruction(actual_inst);
 		actual_inst = tmp;
 	}
-	delete_all_rel_ref(rel_ref);
 	find_opcode_instruction(0, 0, 0, 1);
 	return ;
 }
@@ -110,9 +122,8 @@ int 	main(int argc, char **argv) {
 		printf("Mmap failed!\n");
 		return(0);
 	}
-//	printf("%#lx", *(unsigned long*)(file_mem + 24));
 	text_size = find_text_section(file_mem, &text_start);
-	disas_text_section(text_start, text_size);
+	disas_text_section(file_mem, text_start, text_size);
 	copy_fd = open("copy", O_CREAT | O_TRUNC | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
 	if (copy_fd <= 0)
 		return (0);
